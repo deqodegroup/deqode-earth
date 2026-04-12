@@ -15,10 +15,10 @@ export function TopNav() {
           </div>
         </div>
         <div>
-          <div className="font-mono text-[0.48rem] tracking-[0.25em] uppercase text-[var(--text-dim)]">
+          <div className="font-mono text-[0.6rem] tracking-[0.25em] uppercase text-[var(--text-dim)]">
             DEQODE GROUP
           </div>
-          <div className="font-display text-lg leading-none text-[var(--text)]">
+          <div className="font-display text-xl leading-none text-[var(--text)]">
             EARTH<span className="text-teal">.</span>
           </div>
         </div>
@@ -26,14 +26,14 @@ export function TopNav() {
 
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse" />
-          <span className="font-mono text-[0.48rem] tracking-[0.14em] uppercase text-teal">
+          <span className="w-2 h-2 rounded-full bg-teal animate-pulse" />
+          <span className="font-mono text-[0.65rem] tracking-[0.14em] uppercase text-teal">
             Sentinel Active
           </span>
         </div>
         <Link
           href="#"
-          className="font-mono text-[0.52rem] tracking-[0.14em] uppercase
+          className="font-mono text-[0.65rem] tracking-[0.14em] uppercase
                      px-4 py-2 rounded border border-[var(--border)]
                      text-[var(--text-mid)] hover:border-teal hover:text-teal
                      transition-colors"

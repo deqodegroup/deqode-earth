@@ -55,11 +55,11 @@ export function CoastlineModule({ loc }: { loc: Location }) {
       {/* Controls */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <div className="font-mono text-[0.45rem] tracking-[0.14em] uppercase text-[var(--text-dim)] mb-1">
+          <div className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)] mb-1">
             Analysis Window
           </div>
           <div className="font-sans text-sm text-[var(--text-mid)]">
-            2019 – 2025 · Sentinel-1 SAR · 10 m resolution
+            2019–2021 baseline · 2023–2025 current · Sentinel-1 SAR · 10 m
           </div>
         </div>
 
@@ -68,7 +68,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
             <>
               <button
                 onClick={() => downloadReport("txt")}
-                className="font-mono text-[0.48rem] tracking-[0.14em] uppercase
+                className="font-mono text-xs tracking-[0.1em] uppercase
                            px-4 py-2 rounded border border-[var(--border)]
                            text-[var(--text-mid)] hover:border-teal hover:text-teal transition-colors"
               >
@@ -76,7 +76,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
               </button>
               <button
                 onClick={() => downloadReport("pdf")}
-                className="font-mono text-[0.48rem] tracking-[0.14em] uppercase
+                className="font-mono text-xs tracking-[0.1em] uppercase
                            px-4 py-2 rounded border border-gold/30
                            text-gold hover:bg-gold/10 transition-colors"
               >
@@ -88,8 +88,8 @@ export function CoastlineModule({ loc }: { loc: Location }) {
           <button
             onClick={runAnalysis}
             disabled={state.status === "running"}
-            className="font-mono text-[0.48rem] tracking-[0.14em] uppercase
-                       px-5 py-2 rounded bg-teal text-ocean font-medium
+            className="font-mono text-xs tracking-[0.1em] uppercase
+                       px-5 py-2.5 rounded bg-teal text-ocean font-medium
                        hover:bg-teal/90 disabled:opacity-50 disabled:cursor-not-allowed
                        transition-colors"
           >
@@ -98,39 +98,70 @@ export function CoastlineModule({ loc }: { loc: Location }) {
         </div>
       </div>
 
+      {/* Data spec table — always visible */}
+      <div className="rounded-lg border border-[var(--border)] bg-surface overflow-hidden">
+        <div className="px-5 py-3 border-b border-[var(--border)]">
+          <span className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)]">
+            Data Specifications
+          </span>
+        </div>
+        <table className="w-full text-sm">
+          <tbody>
+            {[
+              ["Sensor",        "Sentinel-1 SAR (ESA Copernicus)"],
+              ["Band",          "VV polarisation — IW mode"],
+              ["Orbits",        "Ascending + Descending"],
+              ["Baseline",      "2019 – 2021 (3-year median composite)"],
+              ["Current",       "2023 – 2025 (3-year median composite)"],
+              ["Resolution",    "10 m native"],
+              ["Threshold",     "−15 dB land/water boundary"],
+              ["Platform",      "Google Earth Engine"],
+              ["Territory",     `${loc.name} · ${loc.coords}`],
+              ["EEZ",           loc.eez],
+            ].map(([label, value]) => (
+              <tr key={label} className="border-b border-[var(--border)] last:border-0">
+                <td className="px-5 py-3 font-mono text-xs tracking-[0.08em] uppercase text-[var(--text-dim)] w-36">
+                  {label}
+                </td>
+                <td className="px-5 py-3 text-[var(--text-mid)]">{value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       {/* Results */}
       {state.status === "running" && (
         <div className="rounded-lg border border-teal/20 bg-teal/5 px-6 py-8 text-center">
-          <div className="font-mono text-[0.52rem] tracking-[0.2em] uppercase text-teal mb-2">
+          <div className="font-mono text-xs tracking-[0.2em] uppercase text-teal mb-2">
             Querying Google Earth Engine
           </div>
-          <div className="font-sans text-xs text-[var(--text-dim)]">
+          <div className="font-sans text-sm text-[var(--text-dim)]">
             Processing Sentinel-1 SAR imagery · This takes 20–60 seconds
           </div>
           <div className="mt-4 w-40 mx-auto h-0.5 bg-surface2 rounded overflow-hidden">
-            <div className="h-full bg-teal rounded animate-[shimmer_1.5s_ease-in-out_infinite]
-                            w-1/2" style={{ animation: "pulse 1.5s ease-in-out infinite" }} />
+            <div className="h-full bg-teal rounded w-1/2" style={{ animation: "pulse 1.5s ease-in-out infinite" }} />
           </div>
         </div>
       )}
 
       {state.status === "error" && (
         <div className="rounded-lg border border-coral/30 bg-coral/5 px-6 py-4">
-          <div className="font-mono text-[0.48rem] tracking-[0.14em] uppercase text-coral mb-1">
+          <div className="font-mono text-xs tracking-[0.14em] uppercase text-coral mb-1">
             Analysis Failed
           </div>
-          <div className="font-sans text-xs text-[var(--text-mid)]">{state.message}</div>
+          <div className="font-sans text-sm text-[var(--text-mid)]">{state.message}</div>
         </div>
       )}
 
       {state.status === "done" && (
         <div className="space-y-4">
-          <div className="font-mono text-[0.45rem] tracking-[0.14em] uppercase text-[var(--text-dim)]">
-            Results · {state.data.period_start} – {state.data.period_end}
+          <div className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)]">
+            Results · Baseline {state.data.period_start} · Current {state.data.period_end}
           </div>
           <MetricCards data={state.data} />
           <div className="rounded-lg border border-[var(--border)] bg-surface p-5">
-            <div className="font-mono text-[0.45rem] tracking-[0.14em] uppercase text-[var(--text-dim)] mb-2">
+            <div className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)] mb-2">
               Interpretation
             </div>
             <p className="font-sans text-sm text-[var(--text-mid)] leading-relaxed">
@@ -146,11 +177,11 @@ export function CoastlineModule({ loc }: { loc: Location }) {
       )}
 
       {state.status === "idle" && (
-        <div className="rounded-lg border border-[var(--border)] bg-surface/50 px-6 py-12 text-center">
-          <div className="font-mono text-[0.48rem] tracking-[0.2em] uppercase text-[var(--text-dim)] mb-2">
+        <div className="rounded-lg border border-[var(--border)] bg-surface/50 px-6 py-10 text-center">
+          <div className="font-mono text-xs tracking-[0.2em] uppercase text-[var(--text-dim)] mb-2">
             Ready to Analyse
           </div>
-          <p className="font-sans text-xs text-[var(--text-dim)] max-w-sm mx-auto">
+          <p className="font-sans text-sm text-[var(--text-dim)] max-w-sm mx-auto">
             Click "Run Analysis" to query the Sentinel-1 SAR archive via
             Google Earth Engine and compute shoreline change metrics.
           </p>
