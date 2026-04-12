@@ -283,15 +283,19 @@ def init_ee():
             key_data=json.dumps(key_data)
         )
         ee.Initialize(credentials, project='deqode-earth')
-    except Exception:
-        # Local dev — use personal auth
-        ee.Initialize(project='deqode-earth')
-    return True
+        return True, None
+    except KeyError:
+        # No secrets found — try local personal auth
+        try:
+            ee.Initialize(project='deqode-earth')
+            return True, None
+        except Exception as e:
+            return False, f"Local auth failed: {e}"
+    except Exception as e:
+        return False, f"Service account auth failed: {e}"
 
-try:
-    init_ee(); ee_ready = True
-except:
-    ee_ready = False
+ee_init, ee_error = init_ee()
+ee_ready = ee_init
 
 # ── LOCATIONS ─────────────────────────────────────────────────────────────────
 LOCATIONS = {
@@ -483,13 +487,20 @@ def run_analysis(location, baseline_year, recent_year, sensor_pref):
 
     return result, None
 
+if not ee_ready and ee_error:
+    st.error(f"Earth Engine unavailable: {ee_error}")
+
 if run and ee_ready:
-    with st.spinner(f"Scanning {cfg['flag']} {loc_name} coastline {baseline_year} → {recent_year}..."):
-        res, err = run_analysis(location, baseline_year, recent_year, sensor_pref)
-        if err:
-            st.error(err)
-        else:
-            st.session_state.results = res
+    if st.session_state.get('last_run') == (location, baseline_year, recent_year, sensor_pref):
+        pass  # same params — skip re-run, show existing results
+    else:
+        with st.spinner(f"Scanning {cfg['flag']} {loc_name} coastline {baseline_year} → {recent_year}..."):
+            res, err = run_analysis(location, baseline_year, recent_year, sensor_pref)
+            if err:
+                st.error(err)
+            else:
+                st.session_state.results = res
+                st.session_state.last_run = (location, baseline_year, recent_year, sensor_pref)
 
 results = st.session_state.results
 
