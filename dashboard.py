@@ -276,12 +276,20 @@ st.markdown("""
 @st.cache_resource
 def init_ee():
     try:
-        # Streamlit Cloud — use service account from secrets
-        raw = st.secrets["gee"]["json_key"]
-        key_data = raw if isinstance(raw, dict) else json.loads(raw)
+        # Streamlit Cloud — read individual fields from [gee] section
+        g = st.secrets["gee"]
+        key_data = {
+            "type": "service_account",
+            "project_id": g["project_id"],
+            "private_key_id": g["private_key_id"],
+            "private_key": g["private_key"],
+            "client_email": g["client_email"],
+            "client_id": g["client_id"],
+            "token_uri": "https://oauth2.googleapis.com/token",
+        }
         credentials = ee.ServiceAccountCredentials(
             email=key_data["client_email"],
-            key_data=json.dumps(dict(key_data))
+            key_data=json.dumps(key_data)
         )
         ee.Initialize(credentials, project='deqode-earth')
         return True, None
