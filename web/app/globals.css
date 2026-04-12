@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --ocean:    #0D1B2A;
+  --surface:  #152236;
+  --surface2: #1C2E45;
+  --teal:     #4CB9C0;
+  --gold:     #D4A55A;
+  --coral:    #E05B4B;
+  --sky:      #3B7DD8;
+  --text:     #E8EDF2;
+  --text-mid: #8BA5BC;
+  --text-dim: #4A6680;
+  --border:   rgba(76,185,192,0.10);
+  --grid:     rgba(76,185,192,0.04);
+}
+
+@theme inline {
+  --color-ocean:    var(--ocean);
+  --color-surface:  var(--surface);
+  --color-surface2: var(--surface2);
+  --color-teal:     var(--teal);
+  --color-gold:     var(--gold);
+  --color-coral:    var(--coral);
+  --color-sky:      var(--sky);
+  --font-display:   var(--font-playfair-sc), serif;
+  --font-heading:   var(--font-playfair), serif;
+  --font-sans:      var(--font-dm-sans), sans-serif;
+  --font-mono:      var(--font-jetbrains), monospace;
+}
+
+html, body {
+  background: var(--ocean);
+  color: var(--text);
+}
