@@ -276,17 +276,10 @@ st.markdown("""
 @st.cache_resource
 def init_ee():
     try:
-        # Streamlit Cloud — read individual fields from [gee] section
-        g = st.secrets["gee"]
-        key_data = {
-            "type": "service_account",
-            "project_id": g["project_id"],
-            "private_key_id": g["private_key_id"],
-            "private_key": g["private_key"],
-            "client_email": g["client_email"],
-            "client_id": g["client_id"],
-            "token_uri": "https://oauth2.googleapis.com/token",
-        }
+        # Streamlit Cloud — base64-encoded service account JSON
+        import base64
+        raw = st.secrets["gee"]["b64_key"]
+        key_data = json.loads(base64.b64decode(raw).decode())
         credentials = ee.ServiceAccountCredentials(
             email=key_data["client_email"],
             key_data=json.dumps(key_data)
