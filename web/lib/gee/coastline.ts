@@ -2,32 +2,35 @@ import ee from "@google/earthengine";
 import { type Location } from "@/lib/locations";
 import { type CoastlineMetrics } from "@/components/modules/coastline/MetricCards";
 
-const START_YEAR = 2019;
-const END_YEAR   = 2025;
+// Use 2-year windows for robustness — Sentinel-1 coverage of small Pacific
+// islands is sparse; single-year composites can return empty collections.
+const BASELINE_START = "2019-01-01";
+const BASELINE_END   = "2021-12-31";
+const CURRENT_START  = "2023-01-01";
+const CURRENT_END    = "2025-12-31";
 
 /**
  * Run the SAR-derived shoreline change analysis for a given location.
  * Returns aggregated erosion / accretion / net change metrics.
  *
  * Algorithm:
- *  1. Filter Sentinel-1 GRD IW VV ascending passes to the bbox.
- *  2. Build annual median composites.
- *  3. Apply Otsu threshold to segment land/water in each composite.
- *  4. Compute pixel-wise difference between first and last year to derive
- *     erosion (water→land→water) and accretion (water→land) masks.
+ *  1. Filter Sentinel-1 GRD IW VV passes (both orbits) to the bbox.
+ *  2. Build multi-year median composites for baseline and current periods.
+ *  3. Apply fixed -15 dB threshold to segment land/water.
+ *  4. Compute pixel-wise difference to derive erosion / accretion masks.
  *  5. Convert pixel counts to metres using the 10 m native resolution.
  */
 export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics> {
   const [lonMin, latMin, lonMax, latMax] = loc.bbox;
   const region = ee.Geometry.Rectangle([lonMin, latMin, lonMax, latMax]);
 
-  function annualMedian(year: number) {
+  function periodMedian(start: string, end: string) {
     return ee.ImageCollection("COPERNICUS/S1_GRD")
       .filterBounds(region)
-      .filterDate(`${year}-01-01`, `${year}-12-31`)
+      .filterDate(start, end)
       .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
       .filter(ee.Filter.eq("instrumentMode", "IW"))
-      .filter(ee.Filter.eq("orbitProperties_pass", "ASCENDING"))
+      // Accept both orbits to maximise coverage over small islands
       .select("VV")
       .median()
       .clip(region);
@@ -40,8 +43,8 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
     return image.gt(-15).rename("land");
   }
 
-  const baseline = otsuThreshold(annualMedian(START_YEAR));
-  const current  = otsuThreshold(annualMedian(END_YEAR));
+  const baseline = otsuThreshold(periodMedian(BASELINE_START, BASELINE_END));
+  const current  = otsuThreshold(periodMedian(CURRENT_START,  CURRENT_END));
 
   // Erosion: was land (1), now water (0)
   const erosionMask    = baseline.eq(1).and(current.eq(0));
@@ -89,7 +92,7 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
     accretion_m:  Math.round(accretion_m  * 10) / 10,
     net_change_m: Math.round(net_change_m * 10) / 10,
     stable_pct:   Math.round(stable_pct   * 10) / 10,
-    period_start: String(START_YEAR),
-    period_end:   String(END_YEAR),
+    period_start: "2019–2021",
+    period_end:   "2023–2025",
   };
 }
