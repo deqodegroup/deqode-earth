@@ -277,10 +277,11 @@ st.markdown("""
 def init_ee():
     try:
         # Streamlit Cloud — use service account from secrets
-        key_data = json.loads(st.secrets["gee"]["json_key"])
+        raw = st.secrets["gee"]["json_key"]
+        key_data = raw if isinstance(raw, dict) else json.loads(raw)
         credentials = ee.ServiceAccountCredentials(
             email=key_data["client_email"],
-            key_data=json.dumps(key_data)
+            key_data=json.dumps(dict(key_data))
         )
         ee.Initialize(credentials, project='deqode-earth')
         return True, None
@@ -292,7 +293,7 @@ def init_ee():
         except Exception as e:
             return False, f"Local auth failed: {e}"
     except Exception as e:
-        return False, f"Service account auth failed: {e}"
+        return False, f"Service account auth failed: {type(e).__name__}: {str(e)[:120]}"
 
 ee_init, ee_error = init_ee()
 ee_ready = ee_init
