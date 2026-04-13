@@ -32,8 +32,8 @@ function CountryCard({ loc, index }: { loc: Location; index: number }) {
         borderLeftWidth: "2px",
         borderLeftStyle: "solid",
       }}
-      className={`group relative flex flex-col gap-4 rounded-lg border border-[var(--border)]
-                 bg-surface p-6 transition-all duration-300
+      className={`group relative flex flex-col gap-5 rounded-lg border border-[var(--border)]
+                 bg-surface p-8 transition-all duration-300
                  hover:bg-surface2 hover:-translate-y-0.5
                  animate-float-up ${RISK_GLOW_CLASS[loc.risk]}`}
     >
@@ -47,13 +47,13 @@ function CountryCard({ loc, index }: { loc: Location; index: number }) {
       )}
 
       {/* Flag + name */}
-      <div className="flex items-center gap-3">
-        <span className="text-3xl leading-none">{loc.flag}</span>
+      <div className="flex items-center gap-4">
+        <span className="text-4xl leading-none">{loc.flag}</span>
         <div>
-          <div className="font-display text-base leading-tight text-[var(--text)]">
+          <div className="font-display text-xl leading-tight text-[var(--text)]">
             {loc.name}
           </div>
-          <div className="font-mono text-[0.65rem] tracking-[0.12em] uppercase text-[var(--text-dim)] mt-0.5">
+          <div className="font-mono text-[0.65rem] tracking-[0.12em] uppercase text-[var(--text-dim)] mt-1">
             {loc.coords}
           </div>
         </div>
@@ -89,13 +89,13 @@ function CountryCard({ loc, index }: { loc: Location; index: number }) {
 
 export function CountryGrid() {
   return (
-    <section className="max-w-6xl mx-auto px-12 py-16">
-      <div className="flex items-end justify-between mb-8">
+    <section className="max-w-[1440px] mx-auto px-16 py-16">
+      <div className="flex items-end justify-between mb-10">
         <div>
           <div className="font-mono text-[0.65rem] tracking-[0.25em] uppercase text-[var(--text-dim)] mb-2">
             Pacific SIDS — Active Coverage
           </div>
-          <h2 className="font-display text-2xl text-[var(--text)]">
+          <h2 className="font-display text-3xl text-[var(--text)]">
             Select a Territory
           </h2>
         </div>
@@ -105,7 +105,7 @@ export function CountryGrid() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {LIVE_FIRST.map((loc, i) => (
           <CountryCard key={loc.slug} loc={loc} index={i} />
         ))}

@@ -87,7 +87,7 @@ export function ModuleGrid({ loc }: { loc: Location }) {
   const modules = getModules(loc);
 
   return (
-    <section className="max-w-6xl mx-auto px-12 py-12">
+    <section className="max-w-[1440px] mx-auto px-16 py-12">
       <div className="font-mono text-[0.65rem] tracking-[0.25em] uppercase text-[var(--text-dim)] mb-6">
         Intelligence Modules
       </div>
@@ -108,7 +108,7 @@ function ModuleCard({ mod, slug }: { mod: Module; slug: string }) {
 
   const inner = mod.available ? (
     // Active module card
-    <div className={`group relative flex flex-col gap-5 rounded-lg border bg-surface p-6
+    <div className={`group relative flex flex-col gap-6 rounded-lg border bg-surface p-8
                      transition-all duration-200
                      ${accentBorder} hover:bg-surface2 hover:-translate-y-0.5 cursor-pointer
                      module-card-active`}>
@@ -142,7 +142,7 @@ function ModuleCard({ mod, slug }: { mod: Module; slug: string }) {
     </div>
   ) : (
     // Roadmap teaser card
-    <div className={`relative flex flex-col gap-5 rounded-lg border border-[var(--border)] bg-surface p-6`}>
+    <div className={`relative flex flex-col gap-6 rounded-lg border border-[var(--border)] bg-surface p-8`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="font-mono text-xl leading-none text-[var(--text-dim)]">{mod.icon}</span>

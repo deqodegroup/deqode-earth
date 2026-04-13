@@ -7,7 +7,7 @@ export default function Home() {
       <TopNav />
 
       {/* Hero */}
-      <section className="relative max-w-6xl mx-auto px-12 pt-20 pb-16 w-full overflow-hidden">
+      <section className="relative max-w-[1440px] mx-auto px-16 pt-20 pb-16 w-full overflow-hidden">
         {/* Grid background */}
         <div className="absolute inset-0 pointer-events-none"
              style={{
@@ -71,14 +71,14 @@ export default function Home() {
       </section>
 
       {/* Divider */}
-      <div className="border-t border-[var(--border)] mx-12" />
+      <div className="border-t border-[var(--border)] mx-16" />
 
       {/* Country grid */}
       <CountryGrid />
 
       {/* Footer strip */}
-      <footer className="mt-auto border-t border-[var(--border)] px-12 py-5">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+      <footer className="mt-auto border-t border-[var(--border)] px-16 py-5">
+        <div className="max-w-[1440px] mx-auto flex items-center justify-between">
           <span className="font-mono text-[0.65rem] tracking-[0.12em] uppercase text-[var(--text-dim)]">
             © 2026 DEQODE Group — All intelligence is satellite-verified
           </span>

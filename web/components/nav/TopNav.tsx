@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function TopNav() {
   return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between px-12 py-4
+    <nav className="sticky top-0 z-50 flex items-center justify-between px-16 py-4
                     bg-ocean/95 backdrop-blur border-b border-[var(--border)]">
       <Link href="/" className="flex items-center gap-4 group">
         {/* Logo mark: orbital ring */}

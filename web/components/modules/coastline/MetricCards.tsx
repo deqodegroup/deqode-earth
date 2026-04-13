@@ -29,14 +29,14 @@ function Metric({
     : "text-[var(--text)]";
 
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-surface p-5">
-      <div className="font-mono text-[0.65rem] tracking-[0.14em] uppercase text-[var(--text-dim)] mb-2">
+    <div className="rounded-lg border border-[var(--border)] bg-surface p-7">
+      <div className="font-mono text-[0.65rem] tracking-[0.14em] uppercase text-[var(--text-dim)] mb-3">
         {label}
       </div>
-      <div className={`font-display text-3xl leading-none ${color}`}>
+      <div className={`font-display text-4xl leading-none ${color}`}>
         {value}
         {unit && (
-          <span className="font-mono text-sm text-[var(--text-dim)] ml-1">{unit}</span>
+          <span className="font-mono text-base text-[var(--text-dim)] ml-1.5">{unit}</span>
         )}
       </div>
     </div>

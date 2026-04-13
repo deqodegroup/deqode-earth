@@ -30,8 +30,8 @@ export default async function CoastlinePage({ params }: Props) {
       <TopNav />
 
       {/* Breadcrumb */}
-      <div className="border-b border-[var(--border)] px-12 py-3">
-        <div className="max-w-6xl mx-auto flex items-center gap-2 font-mono text-[0.65rem] tracking-[0.12em] uppercase">
+      <div className="border-b border-[var(--border)] px-16 py-3.5">
+        <div className="max-w-[1440px] mx-auto flex items-center gap-2 font-mono text-[0.65rem] tracking-[0.12em] uppercase">
           <Link href="/" className="text-[var(--text-dim)] hover:text-teal transition-colors">
             Earth
           </Link>
@@ -45,10 +45,10 @@ export default async function CoastlinePage({ params }: Props) {
       </div>
 
       {/* Module header */}
-      <section className="border-b border-[var(--border)] px-12 py-8 bg-surface/20 relative overflow-hidden">
+      <section className="border-b border-[var(--border)] px-16 py-8 bg-surface/20 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none"
              style={{ background: "radial-gradient(ellipse 50% 120% at 0% 50%, rgba(76,185,192,0.05) 0%, transparent 60%)" }} />
-        <div className="max-w-6xl mx-auto flex items-start justify-between gap-6 flex-wrap relative z-10">
+        <div className="max-w-[1440px] mx-auto flex items-start justify-between gap-6 flex-wrap relative z-10">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="font-mono text-xl text-teal glow-text-teal">◎</span>
@@ -78,7 +78,7 @@ export default async function CoastlinePage({ params }: Props) {
       </section>
 
       {/* Analysis panel */}
-      <main className="max-w-6xl mx-auto px-12 py-10 w-full flex-1">
+      <main className="max-w-[1440px] mx-auto px-16 py-10 w-full flex-1">
         <CoastlineModule loc={loc} />
       </main>
     </div>

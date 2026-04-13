@@ -9,7 +9,7 @@ const RISK_COLOR: Record<string, string> = {
 
 export function CountryHero({ loc }: { loc: Location }) {
   return (
-    <section className="border-b border-[var(--border)] px-12 py-10 relative overflow-hidden bg-surface/30">
+    <section className="border-b border-[var(--border)] px-16 py-10 relative overflow-hidden bg-surface/30">
       {/* Risk atmospheric glow */}
       {loc.risk === "CRITICAL" && (
         <div className="absolute inset-0 pointer-events-none"
@@ -19,7 +19,7 @@ export function CountryHero({ loc }: { loc: Location }) {
         <div className="absolute inset-0 pointer-events-none"
              style={{ background: "radial-gradient(ellipse 70% 100% at 0% 50%, rgba(212,165,90,0.05) 0%, transparent 65%)" }} />
       )}
-      <div className="max-w-6xl mx-auto relative z-10">
+      <div className="max-w-[1440px] mx-auto relative z-10">
         <div className="font-mono text-[0.65rem] tracking-[0.25em] uppercase text-[var(--text-dim)] mb-4">
           Pacific SIDS / {loc.name}
         </div>
