@@ -1,15 +1,17 @@
 "use client";
 
 export interface CoastlineMetrics {
-  erosion_m:    number;
-  accretion_m:  number;
-  net_change_m: number;
-  stable_pct:   number;
-  erosion_m2:   number;
-  accretion_m2: number;
-  period_start: string;
-  period_end:   string;
-  mapImageUrl:  string;
+  erosion_m:      number;
+  accretion_m:    number;
+  net_change_m:   number;
+  stable_pct:     number;
+  erosion_m2:     number;
+  accretion_m2:   number;
+  period_start:   string;
+  period_end:     string;
+  mapImageUrl:    string;
+  baselineCount:  number;
+  currentCount:   number;
 }
 
 function Metric({
