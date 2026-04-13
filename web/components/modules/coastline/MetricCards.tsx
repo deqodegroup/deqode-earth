@@ -10,8 +10,6 @@ export interface CoastlineMetrics {
   period_start:   string;
   period_end:     string;
   mapImageUrl:    string;
-  baselineCount:  number;
-  currentCount:   number;
 }
 
 function Metric({

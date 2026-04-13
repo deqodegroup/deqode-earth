@@ -235,7 +235,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
                     Sentinel-1 GRD · VV polarisation · 10 m resolution · Google Earth Engine
                   </span>
                   <span className="font-mono text-[0.45rem] tracking-[0.08em] uppercase text-[var(--text-dim)]">
-                    Scenes: {state.data.baselineCount} baseline · {state.data.currentCount} current
+                    Sentinel-1 GRD · VV · 10 m · Google Earth Engine
                   </span>
                 </div>
               </div>

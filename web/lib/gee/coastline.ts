@@ -48,24 +48,8 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
     ).clip(region);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function getCollectionSize(col: any): Promise<number> {
-    return new Promise((resolve) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      col.size().evaluate((n: any, err: any) => {
-        resolve(err ? 0 : (n ?? 0));
-      });
-    });
-  }
-
   const baselineCol = buildCollection(BASELINE_START, BASELINE_END);
   const currentCol  = buildCollection(CURRENT_START,  CURRENT_END);
-
-  // Get counts first so we can surface data availability in the response
-  const [baselineCount, currentCount] = await Promise.all([
-    getCollectionSize(baselineCol),
-    getCollectionSize(currentCol),
-  ]);
 
   const baselineComposite = safeComposite(baselineCol);
   const currentComposite  = safeComposite(currentCol);
@@ -155,7 +139,5 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
     period_start:   "2019–2021",
     period_end:     "2022–2025",
     mapImageUrl,
-    baselineCount,
-    currentCount,
   };
 }
