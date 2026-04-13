@@ -25,15 +25,24 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
   const region = ee.Geometry.Rectangle([lonMin, latMin, lonMax, latMax]);
 
   function periodMedian(start: string, end: string) {
-    return ee.ImageCollection("COPERNICUS/S1_GRD")
+    const col = ee.ImageCollection("COPERNICUS/S1_GRD")
       .filterBounds(region)
       .filterDate(start, end)
       .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
       .filter(ee.Filter.eq("instrumentMode", "IW"))
       // Accept both orbits to maximise coverage over small islands
-      .select("VV")
-      .median()
-      .clip(region);
+      .select("VV");
+
+    // If the collection is empty (sparse SAR coverage over small Pacific islands),
+    // fall back to a constant -30 dB image (clearly water) so downstream .gt()
+    // always operates on a 1-band image instead of crashing with a 0-band image.
+    const median = ee.Algorithms.If(
+      col.size().gt(0),
+      col.median(),
+      ee.Image.constant(-30).rename("VV")
+    );
+
+    return ee.Image(median).clip(region);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
