@@ -14,6 +14,11 @@ export async function initGEE(): Promise<void> {
 
   const key = JSON.parse(Buffer.from(b64, "base64").toString("utf-8"));
 
+  // Extract project_id from the service account key so GEE routes
+  // requests to the correct registered project. Without this, newer
+  // SDK versions may silently return empty collections.
+  const project = `projects/${key.project_id ?? "deqode-earth"}`;
+
   await new Promise<void>((resolve, reject) => {
     ee.data.authenticateViaPrivateKey(
       key,
@@ -22,6 +27,8 @@ export async function initGEE(): Promise<void> {
           null, null,
           () => { initialised = true; resolve(); },
           (err: string) => reject(new Error(`GEE init failed: ${err}`)),
+          null,
+          project,
         );
       },
       (err: string) => reject(new Error(`GEE auth failed: ${err}`)),
