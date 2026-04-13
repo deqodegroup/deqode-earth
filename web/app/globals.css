@@ -33,3 +33,88 @@ html, body {
   background: var(--ocean);
   color: var(--text);
 }
+
+/* ─── EARTH Animation System ─────────────────────────── */
+
+@keyframes earth-float-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes earth-glow-teal {
+  0%, 100% { box-shadow: 0 0 8px rgba(76,185,192,0.1), 0 0 24px rgba(76,185,192,0.04); }
+  50%       { box-shadow: 0 0 20px rgba(76,185,192,0.32), 0 0 48px rgba(76,185,192,0.12); }
+}
+
+@keyframes earth-glow-coral {
+  0%, 100% { box-shadow: 0 0 8px rgba(224,91,75,0.12), 0 0 22px rgba(224,91,75,0.05); }
+  50%       { box-shadow: 0 0 22px rgba(224,91,75,0.42), 0 0 50px rgba(224,91,75,0.15); }
+}
+
+@keyframes earth-glow-gold {
+  0%, 100% { box-shadow: 0 0 8px rgba(212,165,90,0.1); }
+  50%       { box-shadow: 0 0 20px rgba(212,165,90,0.3); }
+}
+
+@keyframes earth-glow-text-teal {
+  0%, 100% { text-shadow: 0 0 10px rgba(76,185,192,0.3), 0 0 24px rgba(76,185,192,0.1); }
+  50%       { text-shadow: 0 0 20px rgba(76,185,192,0.65), 0 0 40px rgba(76,185,192,0.25); }
+}
+
+@keyframes earth-orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes earth-scan {
+  0%         { top: -1px; opacity: 0; }
+  5%, 95%    { opacity: 1; }
+  100%       { top: 100%; opacity: 0; }
+}
+
+@keyframes earth-shimmer {
+  0%   { background-position: -150% center; }
+  100% { background-position: 250% center; }
+}
+
+/* ─── Animation utilities ─────────────────────────────── */
+
+.animate-float-up   { animation: earth-float-up 0.52s ease-out both; }
+.animate-glow-teal  { animation: earth-glow-teal 2.8s ease-in-out infinite; }
+.animate-glow-coral { animation: earth-glow-coral 2s ease-in-out infinite; }
+.animate-glow-gold  { animation: earth-glow-gold 3s ease-in-out infinite; }
+.glow-text-teal     { animation: earth-glow-text-teal 2.5s ease-in-out infinite; }
+
+/* ─── Scan sweep line ─────────────────────────────────── */
+
+.scan-line {
+  position: absolute;
+  left: 0; right: 0; top: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(76,185,192,0.3) 50%, transparent 100%);
+  animation: earth-scan 10s ease-in-out infinite 0.5s;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ─── Card risk hover glows ───────────────────────────── */
+
+.card-glow-teal:hover  { box-shadow: 0 0 26px rgba(76,185,192,0.18);  border-color: rgba(76,185,192,0.38) !important; }
+.card-glow-coral:hover { box-shadow: 0 0 32px rgba(224,91,75,0.22);   border-color: rgba(224,91,75,0.45) !important; }
+.card-glow-gold:hover  { box-shadow: 0 0 26px rgba(212,165,90,0.18);  border-color: rgba(212,165,90,0.42) !important; }
+.card-glow-sky:hover   { box-shadow: 0 0 22px rgba(59,125,216,0.16);  border-color: rgba(59,125,216,0.38) !important; }
+
+.module-card-active:hover { box-shadow: 0 0 28px rgba(76,185,192,0.2); }
+
+/* ─── Pending badge shimmer ───────────────────────────── */
+
+.badge-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.07) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: earth-shimmer 4s ease-in-out infinite;
+}

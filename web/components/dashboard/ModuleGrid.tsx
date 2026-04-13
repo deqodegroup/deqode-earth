@@ -6,6 +6,8 @@ interface Module {
   icon: string;
   title: string;
   subtitle: string;
+  teaserText?: string;
+  launchQuarter?: string;
   metrics: { label: string; value: string; unit?: string }[];
   accentColor: string;
   available: boolean;
@@ -30,7 +32,9 @@ function getModules(loc: Location): Module[] {
       id: "ocean",
       icon: "⬡",
       title: "Ocean Intelligence",
-      subtitle: "Dark vessel detection & IUU fishing activity in EEZ",
+      subtitle: "Dark vessel detection across your EEZ",
+      teaserText: `Automated monitoring for illegal, unreported, and unregulated fishing. Every vessel in your ${loc.eez} EEZ — named or dark.`,
+      launchQuarter: "Q3 2026",
       metrics: [
         { label: "Coverage", value: loc.eez },
         { label: "Sensor", value: "Sentinel-1 SAR" },
@@ -44,6 +48,8 @@ function getModules(loc: Location): Module[] {
       icon: "✦",
       title: "Reef Intelligence",
       subtitle: "Coral health index & bleaching risk from optical data",
+      teaserText: "Bleaching risk scores from Sentinel-2 multispectral data. Continuous coral health monitoring without deploying a dive team.",
+      launchQuarter: "Q4 2026",
       metrics: [
         { label: "Bands", value: "B2–B8A" },
         { label: "Sensor", value: "Sentinel-2 MSI" },
@@ -56,7 +62,9 @@ function getModules(loc: Location): Module[] {
       id: "land",
       icon: "▲",
       title: "Land Intelligence",
-      subtitle: "Forest cover, storm damage & land-use change detection",
+      subtitle: "Cyclone damage, deforestation & flood extent mapping",
+      teaserText: "Post-cyclone damage corridors, flood extent, and land-use change — satellite-verified evidence for insurance, aid, and UNFCCC submissions.",
+      launchQuarter: "2027",
       metrics: [
         { label: "Index", value: "NDVI / dNBR" },
         { label: "Sensor", value: "Sentinel-2 MSI" },
@@ -80,7 +88,7 @@ export function ModuleGrid({ loc }: { loc: Location }) {
 
   return (
     <section className="max-w-6xl mx-auto px-12 py-12">
-      <div className="font-mono text-[0.48rem] tracking-[0.25em] uppercase text-[var(--text-dim)] mb-6">
+      <div className="font-mono text-[0.65rem] tracking-[0.25em] uppercase text-[var(--text-dim)] mb-6">
         Intelligence Modules
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -94,62 +102,70 @@ export function ModuleGrid({ loc }: { loc: Location }) {
 
 function ModuleCard({ mod, slug }: { mod: Module; slug: string }) {
   const accent = ACCENT[mod.accentColor];
+  const accentText = accent.split(" ")[2];
+  const accentBorder = accent.split(" ")[0];
+  const accentBg = accent.split(" ")[1];
 
-  const inner = (
+  const inner = mod.available ? (
+    // Active module card
     <div className={`group relative flex flex-col gap-5 rounded-lg border bg-surface p-6
                      transition-all duration-200
-                     ${mod.available
-                       ? `${accent.split(" ")[0]} hover:bg-surface2 hover:-translate-y-0.5 cursor-pointer`
-                       : "border-[var(--border)] opacity-60 cursor-default"
-                     }`}>
-      {/* Header */}
+                     ${accentBorder} hover:bg-surface2 hover:-translate-y-0.5 cursor-pointer
+                     module-card-active`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className={`font-mono text-xl leading-none ${mod.available ? accent.split(" ")[2] : "text-[var(--text-dim)]"}`}>
-            {mod.icon}
-          </span>
+          <span className={`font-mono text-xl leading-none ${accentText}`}>{mod.icon}</span>
           <div>
-            <div className="font-display text-lg leading-tight text-[var(--text)]">
-              {mod.title}
-            </div>
-            <div className="font-sans text-xs text-[var(--text-mid)] mt-0.5 leading-relaxed">
-              {mod.subtitle}
-            </div>
+            <div className="font-display text-lg leading-tight text-[var(--text)]">{mod.title}</div>
+            <div className="font-sans text-xs text-[var(--text-mid)] mt-0.5 leading-relaxed">{mod.subtitle}</div>
           </div>
         </div>
-        {mod.available
-          ? <span className={`font-mono text-[0.45rem] tracking-[0.12em] uppercase border rounded-full px-2 py-0.5 ${accent}`}>
-              Active
-            </span>
-          : <span className="font-mono text-[0.45rem] tracking-[0.12em] uppercase border border-[var(--border)] rounded-full px-2 py-0.5 text-[var(--text-dim)]">
-              Pending
-            </span>
-        }
+        <span className={`font-mono text-[0.65rem] tracking-[0.12em] uppercase border rounded-full px-2 py-0.5 ${accent}`}>
+          Active
+        </span>
       </div>
 
-      {/* Metrics */}
       <div className="grid grid-cols-3 gap-3 border-t border-[var(--border)] pt-4">
         {mod.metrics.map((m) => (
           <div key={m.label}>
-            <div className="font-mono text-[0.42rem] tracking-[0.1em] uppercase text-[var(--text-dim)] mb-0.5">
-              {m.label}
-            </div>
-            <div className="font-sans text-xs font-medium text-[var(--text-mid)]">
-              {m.value}
-            </div>
+            <div className="font-mono text-[0.65rem] tracking-[0.1em] uppercase text-[var(--text-dim)] mb-0.5">{m.label}</div>
+            <div className="font-sans text-xs font-medium text-[var(--text-mid)]">{m.value}</div>
           </div>
         ))}
       </div>
 
-      {/* CTA */}
-      {mod.available && (
-        <div className="flex items-center justify-end">
-          <span className={`font-mono text-[0.48rem] tracking-[0.1em] uppercase ${accent.split(" ")[2]}
-                            group-hover:underline underline-offset-2`}>
-            Run Analysis →
-          </span>
+      <div className="flex items-center justify-end">
+        <span className={`font-mono text-[0.65rem] tracking-[0.1em] uppercase ${accentText} group-hover:underline underline-offset-2`}>
+          Run Analysis <span className="inline-block transition-transform duration-200 group-hover:translate-x-1">→</span>
+        </span>
+      </div>
+    </div>
+  ) : (
+    // Roadmap teaser card
+    <div className={`relative flex flex-col gap-5 rounded-lg border border-[var(--border)] bg-surface p-6`}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-xl leading-none text-[var(--text-dim)]">{mod.icon}</span>
+          <div>
+            <div className="font-display text-lg leading-tight text-[var(--text)]">{mod.title}</div>
+            <div className="font-sans text-xs text-[var(--text-mid)] mt-0.5 leading-relaxed">{mod.subtitle}</div>
+          </div>
         </div>
+        <span className={`font-mono text-[0.65rem] tracking-[0.12em] uppercase border rounded-full px-2 py-0.5 whitespace-nowrap
+                          ${accentBorder} ${accentBg} ${accentText} opacity-70 badge-shimmer`}>
+          {mod.launchQuarter}
+        </span>
+      </div>
+
+      {mod.teaserText && (
+        <p className="font-sans text-xs text-[var(--text-dim)] leading-relaxed border-t border-[var(--border)] pt-4">
+          {mod.teaserText}
+        </p>
       )}
+
+      <div className={`font-mono text-[0.65rem] tracking-[0.1em] uppercase ${accentText} opacity-60`}>
+        Coming {mod.launchQuarter} — notify me
+      </div>
     </div>
   );
 

@@ -30,7 +30,7 @@ function Metric({
 
   return (
     <div className="rounded-lg border border-[var(--border)] bg-surface p-5">
-      <div className="font-mono text-[0.45rem] tracking-[0.14em] uppercase text-[var(--text-dim)] mb-2">
+      <div className="font-mono text-[0.65rem] tracking-[0.14em] uppercase text-[var(--text-dim)] mb-2">
         {label}
       </div>
       <div className={`font-display text-3xl leading-none ${color}`}>
@@ -43,33 +43,26 @@ function Metric({
   );
 }
 
+const METRICS = (data: CoastlineMetrics) => [
+  { label: "Coastal Erosion",  value: data.erosion_m.toFixed(1),  unit: "m", trend: "negative" as const },
+  { label: "Coastal Accretion", value: data.accretion_m.toFixed(1), unit: "m", trend: "positive" as const },
+  {
+    label: "Net Change",
+    value: data.net_change_m > 0 ? `+${data.net_change_m.toFixed(1)}` : data.net_change_m.toFixed(1),
+    unit: "m",
+    trend: (data.net_change_m >= 0 ? "positive" : "negative") as "positive" | "negative",
+  },
+  { label: "Stable Shoreline", value: data.stable_pct.toFixed(0), unit: "%", trend: "neutral" as const },
+];
+
 export function MetricCards({ data }: { data: CoastlineMetrics }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <Metric
-        label="Coastal Erosion"
-        value={data.erosion_m.toFixed(1)}
-        unit="m"
-        trend="negative"
-      />
-      <Metric
-        label="Coastal Accretion"
-        value={data.accretion_m.toFixed(1)}
-        unit="m"
-        trend="positive"
-      />
-      <Metric
-        label="Net Change"
-        value={data.net_change_m > 0 ? `+${data.net_change_m.toFixed(1)}` : data.net_change_m.toFixed(1)}
-        unit="m"
-        trend={data.net_change_m >= 0 ? "positive" : "negative"}
-      />
-      <Metric
-        label="Stable Shoreline"
-        value={data.stable_pct.toFixed(0)}
-        unit="%"
-        trend="neutral"
-      />
+      {METRICS(data).map((m, i) => (
+        <div key={m.label} className="animate-float-up" style={{ animationDelay: `${i * 0.08}s` }}>
+          <Metric {...m} />
+        </div>
+      ))}
     </div>
   );
 }

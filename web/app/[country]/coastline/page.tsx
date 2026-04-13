@@ -31,7 +31,7 @@ export default async function CoastlinePage({ params }: Props) {
 
       {/* Breadcrumb */}
       <div className="border-b border-[var(--border)] px-12 py-3">
-        <div className="max-w-6xl mx-auto flex items-center gap-2 font-mono text-[0.45rem] tracking-[0.12em] uppercase">
+        <div className="max-w-6xl mx-auto flex items-center gap-2 font-mono text-[0.65rem] tracking-[0.12em] uppercase">
           <Link href="/" className="text-[var(--text-dim)] hover:text-teal transition-colors">
             Earth
           </Link>
@@ -45,11 +45,13 @@ export default async function CoastlinePage({ params }: Props) {
       </div>
 
       {/* Module header */}
-      <section className="border-b border-[var(--border)] px-12 py-8 bg-surface/20">
-        <div className="max-w-6xl mx-auto flex items-start justify-between gap-6 flex-wrap">
+      <section className="border-b border-[var(--border)] px-12 py-8 bg-surface/20 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none"
+             style={{ background: "radial-gradient(ellipse 50% 120% at 0% 50%, rgba(76,185,192,0.05) 0%, transparent 60%)" }} />
+        <div className="max-w-6xl mx-auto flex items-start justify-between gap-6 flex-wrap relative z-10">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="font-mono text-xl text-teal">◎</span>
+              <span className="font-mono text-xl text-teal glow-text-teal">◎</span>
               <h1 className="font-display text-2xl text-[var(--text)]">
                 Coastline Intelligence
               </h1>
@@ -62,13 +64,13 @@ export default async function CoastlinePage({ params }: Props) {
           </div>
 
           <div className="flex flex-col gap-2 text-right">
-            <div className="font-mono text-[0.45rem] tracking-[0.1em] uppercase text-[var(--text-dim)]">
+            <div className="font-mono text-[0.65rem] tracking-[0.1em] uppercase text-[var(--text-dim)]">
               Territory
             </div>
             <div className="font-sans text-sm font-medium text-[var(--text)]">
               {loc.flag} {loc.name}
             </div>
-            <div className="font-mono text-[0.42rem] tracking-[0.1em] uppercase text-[var(--text-dim)]">
+            <div className="font-mono text-[0.65rem] tracking-[0.1em] uppercase text-[var(--text-dim)]">
               {loc.coords} · EEZ {loc.eez}
             </div>
           </div>
