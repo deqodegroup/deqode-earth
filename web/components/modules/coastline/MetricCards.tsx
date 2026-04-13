@@ -5,8 +5,11 @@ export interface CoastlineMetrics {
   accretion_m:  number;
   net_change_m: number;
   stable_pct:   number;
+  erosion_m2:   number;
+  accretion_m2: number;
   period_start: string;
   period_end:   string;
+  mapImageUrl:  string;
 }
 
 function Metric({

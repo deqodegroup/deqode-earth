@@ -160,15 +160,48 @@ export function CoastlineModule({ loc }: { loc: Location }) {
             Results · Baseline {state.data.period_start} · Current {state.data.period_end}
           </div>
           <MetricCards data={state.data} />
+
+          {/* Satellite change map */}
+          {state.data.mapImageUrl && (
+            <div className="rounded-lg border border-[var(--border)] bg-surface overflow-hidden">
+              <div className="px-5 py-3 border-b border-[var(--border)] flex items-center justify-between">
+                <span className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)]">
+                  Sentinel-1 SAR Change Map
+                </span>
+                <div className="flex items-center gap-4 font-mono text-[0.5rem] tracking-[0.1em] uppercase">
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#E05B4B]" />
+                    <span className="text-[var(--text-dim)]">Erosion</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#4CB9C0]" />
+                    <span className="text-[var(--text-dim)]">Accretion</span>
+                  </span>
+                </div>
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={state.data.mapImageUrl}
+                alt={`${loc.name} coastline change — ${state.data.period_start} to ${state.data.period_end}`}
+                className="w-full block"
+              />
+              <div className="px-5 py-2 border-t border-[var(--border)]">
+                <span className="font-mono text-[0.45rem] tracking-[0.08em] uppercase text-[var(--text-dim)]">
+                  Sentinel-1 GRD · IW mode · VV polarisation · 10 m resolution · Google Earth Engine
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-lg border border-[var(--border)] bg-surface p-5">
             <div className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)] mb-2">
               Interpretation
             </div>
             <p className="font-sans text-sm text-[var(--text-mid)] leading-relaxed">
               {state.data.net_change_m < -1
-                ? `${loc.name} is experiencing net coastal erosion of ${Math.abs(state.data.net_change_m).toFixed(1)} m over the analysis period. Immediate monitoring and intervention planning is recommended.`
+                ? `${loc.name} is experiencing net coastal erosion of ${Math.abs(state.data.net_change_m).toFixed(1)} m (${(state.data.erosion_m2 / 10_000).toFixed(2)} ha) over the analysis period. Immediate monitoring and intervention planning is recommended.`
                 : state.data.net_change_m > 1
-                ? `${loc.name} shows net coastal accretion of ${state.data.net_change_m.toFixed(1)} m. Sediment dynamics are broadly stable, with localised deposition zones identified.`
+                ? `${loc.name} shows net coastal accretion of ${state.data.net_change_m.toFixed(1)} m (${(state.data.accretion_m2 / 10_000).toFixed(2)} ha gained). Sediment dynamics are broadly stable, with localised deposition zones identified.`
                 : `${loc.name}'s coastline shows near-neutral net change (${state.data.net_change_m.toFixed(1)} m). ${state.data.stable_pct.toFixed(0)}% of the shoreline is classified as stable.`
               }
             </p>

@@ -2,71 +2,73 @@ import ee from "@google/earthengine";
 import { type Location } from "@/lib/locations";
 import { type CoastlineMetrics } from "@/components/modules/coastline/MetricCards";
 
-// Use 2-year windows for robustness — Sentinel-1 coverage of small Pacific
-// islands is sparse; single-year composites can return empty collections.
-const BASELINE_START = "2019-01-01";
-const BASELINE_END   = "2021-12-31";
-const CURRENT_START  = "2023-01-01";
+// Mirror original Streamlit analysis: 2020 baseline vs 2024-2025 recent.
+const BASELINE_START = "2020-01-01";
+const BASELINE_END   = "2020-12-31";
+const CURRENT_START  = "2024-01-01";
 const CURRENT_END    = "2025-12-31";
 
 /**
  * Run the SAR-derived shoreline change analysis for a given location.
- * Returns aggregated erosion / accretion / net change metrics.
+ * Returns aggregated erosion / accretion / net change metrics plus a
+ * GEE thumbnail URL showing loss (red) and gain (teal) on SAR background.
  *
  * Algorithm:
- *  1. Filter Sentinel-1 GRD IW VV passes (both orbits) to the bbox.
- *  2. Build multi-year median composites for baseline and current periods.
+ *  1. Filter Sentinel-1 GRD IW VV DESCENDING passes to the bbox.
+ *  2. Build mean composites for baseline and current periods.
  *  3. Apply fixed -15 dB threshold to segment land/water.
  *  4. Compute pixel-wise difference to derive erosion / accretion masks.
- *  5. Convert pixel counts to metres using the 10 m native resolution.
+ *  5. Convert pixel counts to m² area and linear shoreline displacement.
+ *  6. Generate a false-colour thumbnail: SAR grey + red erosion + teal accretion.
  */
 export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics> {
   const [lonMin, latMin, lonMax, latMax] = loc.bbox;
   const region = ee.Geometry.Rectangle([lonMin, latMin, lonMax, latMax]);
 
-  function periodMedian(start: string, end: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function periodComposite(start: string, end: string): any {
     const base = ee.ImageCollection("COPERNICUS/S1_GRD")
       .filterBounds(region)
       .filterDate(start, end)
       .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
+      .filter(ee.Filter.eq("instrumentMode", "IW"))
       .select("VV");
 
-    // Try IW first (best resolution). Small Pacific islands often only have EW
-    // or SM mode passes — fall through to all-mode if IW returns nothing.
-    const iwCol = base.filter(ee.Filter.eq("instrumentMode", "IW"));
+    // Prefer DESCENDING passes — matches original Streamlit that confirmed
+    // real coverage for Niue. Fall back to all orbits if descending is empty.
+    const descCol = base.filter(ee.Filter.eq("orbitProperties_pass", "DESCENDING"));
     const col = ee.ImageCollection(
-      ee.Algorithms.If(iwCol.size().gt(0), iwCol, base)
+      ee.Algorithms.If(descCol.size().gt(0), descCol, base)
     );
 
-    // If still empty after relaxing mode filter, fall back to constant -30 dB
-    // (water) so downstream .gt() always operates on a 1-band image.
-    const median = ee.Algorithms.If(
+    // If still empty, return constant -30 dB (water) — 1 band, no crash.
+    const composite = ee.Algorithms.If(
       col.size().gt(0),
-      col.median(),
+      col.mean(),
       ee.Image.constant(-30).rename("VV")
     );
 
-    return ee.Image(median).clip(region);
+    return ee.Image(composite).clip(region);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function otsuThreshold(image: any): any {
-    // Use a fixed threshold of -15 dB as a reliable land/water separator for
-    // tropical Pacific coastlines (avoids needing histogram computation per scene).
+  function landMask(image: any): any {
+    // -15 dB is a reliable land/water boundary for tropical Pacific coastlines.
     return image.gt(-15).rename("land");
   }
 
-  const baseline = otsuThreshold(periodMedian(BASELINE_START, BASELINE_END));
-  const current  = otsuThreshold(periodMedian(CURRENT_START,  CURRENT_END));
+  const baselineComposite = periodComposite(BASELINE_START, BASELINE_END);
+  const currentComposite  = periodComposite(CURRENT_START,  CURRENT_END);
+
+  const baseline = landMask(baselineComposite);
+  const current  = landMask(currentComposite);
 
   // Erosion: was land (1), now water (0)
-  const erosionMask    = baseline.eq(1).and(current.eq(0));
+  const erosionMask   = baseline.eq(1).and(current.eq(0));
   // Accretion: was water (0), now land (1)
-  const accretionMask  = baseline.eq(0).and(current.eq(1));
+  const accretionMask = baseline.eq(0).and(current.eq(1));
   // Stable: no change
-  const stableMask     = baseline.eq(current);
-
-  const pixelArea = 100; // 10m × 10m = 100 m²
+  const stableMask    = baseline.eq(current);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function countPixels(mask: any): Promise<number> {
@@ -76,36 +78,65 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
         geometry: region,
         scale: 10,
         maxPixels: 1e9,
-      }).evaluate((result: Record<string, number>, err: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }).evaluate((result: any, err: string) => {
         if (err) return reject(new Error(err));
         resolve(result?.land ?? 0);
       });
     });
   }
 
-  const [erosionPx, accretionPx, stablePx] = await Promise.all([
+  // Generate false-colour thumbnail: SAR grey background + red erosion + teal accretion.
+  // Mosaic order: background first, then coloured masks paint on top.
+  function buildMapImage() {
+    const sarViz = currentComposite.visualize({ bands: ["VV"], min: -25, max: 0, palette: ["#0D1B2A", "#2a4a6b", "#7ab3c8"] });
+    const erosionViz   = erosionMask.selfMask().visualize({ palette: ["#E05B4B"] });
+    const accretionViz = accretionMask.selfMask().visualize({ palette: ["#4CB9C0"] });
+    return ee.ImageCollection([sarViz, erosionViz, accretionViz]).mosaic();
+  }
+
+  function getThumbUrl(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      buildMapImage().getThumbURL(
+        { region, dimensions: 800, format: "jpg" },
+        (url: string, err: string) => {
+          if (err) return reject(new Error(err));
+          resolve(url);
+        }
+      );
+    });
+  }
+
+  const [erosionPx, accretionPx, stablePx, mapImageUrl] = await Promise.all([
     countPixels(erosionMask),
     countPixels(accretionMask),
     countPixels(stableMask),
+    getThumbUrl().catch(() => ""),  // map image is best-effort — don't block metrics
   ]);
 
   const totalPx = erosionPx + accretionPx + stablePx;
 
-  // Convert pixel counts → approximate linear shoreline displacement (metres).
-  // Divide area change by the bbox coastal length estimate.
-  const coastLengthM = Math.sqrt((lonMax - lonMin) ** 2 + (latMax - latMin) ** 2) * 111_000;
+  // Area-based metrics (m²)
+  const pixelArea    = 100; // 10 m × 10 m
+  const erosion_m2   = erosionPx   * pixelArea;
+  const accretion_m2 = accretionPx * pixelArea;
 
-  const erosion_m    = (erosionPx    * pixelArea) / Math.max(coastLengthM, 1);
-  const accretion_m  = (accretionPx  * pixelArea) / Math.max(coastLengthM, 1);
-  const net_change_m = accretion_m - erosion_m;
-  const stable_pct   = totalPx > 0 ? (stablePx / totalPx) * 100 : 0;
+  // Linear shoreline displacement estimate: area change ÷ coastal perimeter
+  const coastLengthM  = Math.sqrt((lonMax - lonMin) ** 2 + (latMax - latMin) ** 2) * 111_000;
+  const erosion_m     = erosion_m2   / Math.max(coastLengthM, 1);
+  const accretion_m   = accretion_m2 / Math.max(coastLengthM, 1);
+  const net_change_m  = accretion_m - erosion_m;
+  const stable_pct    = totalPx > 0 ? (stablePx / totalPx) * 100 : 0;
 
   return {
     erosion_m:    Math.round(erosion_m    * 10) / 10,
     accretion_m:  Math.round(accretion_m  * 10) / 10,
     net_change_m: Math.round(net_change_m * 10) / 10,
     stable_pct:   Math.round(stable_pct   * 10) / 10,
-    period_start: "2019–2021",
-    period_end:   "2023–2025",
+    erosion_m2:   Math.round(erosion_m2),
+    accretion_m2: Math.round(accretion_m2),
+    period_start: "2020",
+    period_end:   "2024–2025",
+    mapImageUrl,
   };
 }
