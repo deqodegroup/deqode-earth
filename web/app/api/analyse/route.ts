@@ -31,7 +31,11 @@ export async function POST(req: Request) {
     const metrics = await analyseCoastline(loc);
     return NextResponse.json(metrics);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Internal error";
+    const message =
+      err instanceof Error ? err.message
+      : typeof err === "string" ? err
+      : JSON.stringify(err);
+    console.error("[analyse] GEE error:", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
