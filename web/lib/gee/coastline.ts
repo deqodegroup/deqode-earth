@@ -25,17 +25,21 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
   const region = ee.Geometry.Rectangle([lonMin, latMin, lonMax, latMax]);
 
   function periodMedian(start: string, end: string) {
-    const col = ee.ImageCollection("COPERNICUS/S1_GRD")
+    const base = ee.ImageCollection("COPERNICUS/S1_GRD")
       .filterBounds(region)
       .filterDate(start, end)
       .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
-      .filter(ee.Filter.eq("instrumentMode", "IW"))
-      // Accept both orbits to maximise coverage over small islands
       .select("VV");
 
-    // If the collection is empty (sparse SAR coverage over small Pacific islands),
-    // fall back to a constant -30 dB image (clearly water) so downstream .gt()
-    // always operates on a 1-band image instead of crashing with a 0-band image.
+    // Try IW first (best resolution). Small Pacific islands often only have EW
+    // or SM mode passes — fall through to all-mode if IW returns nothing.
+    const iwCol = base.filter(ee.Filter.eq("instrumentMode", "IW"));
+    const col = ee.ImageCollection(
+      ee.Algorithms.If(iwCol.size().gt(0), iwCol, base)
+    );
+
+    // If still empty after relaxing mode filter, fall back to constant -30 dB
+    // (water) so downstream .gt() always operates on a 1-band image.
     const median = ee.Algorithms.If(
       col.size().gt(0),
       col.median(),
