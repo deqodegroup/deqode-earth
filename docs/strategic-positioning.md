@@ -102,6 +102,43 @@ The case study becomes the primary evidence document for all 8 SIDS CFP submissi
 
 ---
 
+## DEQODE EARTH — Standalone Product Position (confirmed 2026-04-14)
+
+### The core principle: Santiago is a channel, not an integration
+
+DEQODE EARTH is a standalone sovereign intelligence platform. Santiago Network is a client acquisition and funding channel — not a system to integrate with.
+
+**Why standalone is the right architecture:**
+
+- **IP stays with DEQODE** — integrating into UN data infrastructure means negotiating IP, data governance, and usage rights with a multilateral bureaucracy. Standalone means DEQODE owns the platform, the methodology, and the outputs entirely
+- **The licensing model requires it** — governments pay DEQODE for access to the platform. If Santiago "provides" the tool, the payment relationship collapses. The correct flow is: Santiago funds the government → government pays DEQODE for a platform licence
+- **Data sovereignty is a government requirement** — Pacific SIDS will not accept their coastal vulnerability, erosion rates, or EEZ vessel activity sitting in shared UN infrastructure. This data is national security adjacent. A government knowing their coastline is retreating at 3.2m/year has implications for land rights, sovereignty claims, insurance, and climate negotiations — they control that narrative
+- **Siloed by design** — each government's data is gated behind their own Supabase auth instance, not pooled or visible to other nations. This is a feature, not a limitation. The pitch: *"Your intelligence is sovereign. Only your department sees it."*
+
+### The clean commercial model
+
+```
+Santiago Network funds the mandate
+        ↓
+Government signs DEQODE platform licence
+        ↓
+DEQODE EARTH runs as sovereign tool for that government
+        ↓
+Data never leaves their context
+        ↓
+DEQODE retains full platform IP
+```
+
+### On future Santiago data integration
+
+If a government ever requests data sharing with Santiago Network reporting systems, this is handled as a **separate integration feature** scoped and priced at the licence level — not baked into the core platform. The government controls what gets shared and when. DEQODE builds the export/reporting bridge on request.
+
+### Agent infrastructure note (confirmed 2026-04-14)
+
+AI agents (scheduled analysis, threshold alerts, auto-report distribution, EOI drafting) are high-value additions to DEQODE EARTH as a standalone tool. They do not require Santiago integration — they operate entirely within each government's siloed instance. The agent layer reinforces the sovereign data model.
+
+---
+
 ## DEQODE Group — Two Platform Strategy
 
 | Platform | Domain | Status | Revenue model |
