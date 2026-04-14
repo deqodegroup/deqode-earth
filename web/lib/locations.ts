@@ -27,14 +27,14 @@ export const LOCATIONS: Record<string, Location> = {
     bbox: [134.4, 7.0, 134.7, 7.4],
     center: [7.2, 134.55], zoom: 11,
     coords: "7°21'N 134°28'E", risk: "CRITICAL",
-    pop: "18,000", eez: "~600,000 km²", isLive: false,
+    pop: "18,000", eez: "~600,000 km²", isLive: true,
   },
   fiji: {
     slug: "fiji", name: "Fiji", flag: "🇫🇯",
     bbox: [177.2, -18.2, 178.0, -17.5],
     center: [-17.85, 177.6], zoom: 10,
     coords: "17°44'S 178°27'E", risk: "HIGH",
-    pop: "930,000", eez: "~1,290,000 km²", isLive: false,
+    pop: "930,000", eez: "~1,290,000 km²", isLive: true,
   },
   tuvalu: {
     slug: "tuvalu", name: "Tuvalu", flag: "🇹🇻",
