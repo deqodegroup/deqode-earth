@@ -152,5 +152,31 @@ Combined, they position DEQODE Group as both a commercial AI studio and a sovere
 
 ---
 
+## Boswell Haiosi — Founder as Santiago SME (confirmed 2026-04-14)
+
+Boswell is applying to be recognised as a Subject Matter Expert on the Santiago Network platform for Pacific Indigenous climate adaptation.
+
+**Why this changes the strategic picture:**
+
+- DEQODE EARTH is no longer just a product pitched to governments — it is built and led by a Pacific indigenous person who is a recognised expert in the problem it solves
+- This is a rare and powerful position: most climate tech for SIDS is built by outsiders. Boswell is Niuean. He IS the community
+- Santiago SME status + DEQODE Group TAP registration = credibility at both the individual expert level and the organisational provider level
+- The Niue case study carries more weight when the person presenting it is a native Niuean speaker and an IDIL stakeholder
+
+**The three-pillar positioning:**
+
+| Pillar | What it is | What it proves |
+|---|---|---|
+| TOP | Indigenous language preservation platform | Cultural sovereignty — Pacific voices preserved in technology |
+| DEQODE EARTH | Pacific geospatial intelligence platform | Environmental sovereignty — Pacific land and ocean monitored by Pacific people |
+| Santiago SME | Expert recognition on the UN climate adaptation network | Policy authority — Pacific knowledge guiding global climate decisions |
+
+Together these position Boswell as one of the most credible voices in Pacific indigenous technology and climate adaptation — not a consultant, not an outsider building for communities, but a founder who is the community.
+
+**How to apply this in pitches and submissions:**
+Lead with the founder's identity when submitting EOIs and TAP registration. The indigenous-led framing is not a soft story — it is a strategic differentiator that no competitor can replicate.
+
+---
+
 *Document prepared by DEQODE Group — internal strategic reference*
 *Classification: Internal — not for distribution*
