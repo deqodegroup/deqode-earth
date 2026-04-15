@@ -4,6 +4,7 @@ Python serverless (Vercel) — gRPC fast path, same GEE_B64_KEY env var.
 Returns a proxied /api/map-image URL so the frontend avoids CORS.
 """
 from http.server import BaseHTTPRequestHandler
+from urllib.parse import quote
 import ee
 import json
 import os
@@ -64,20 +65,16 @@ def generate_thumb(slug: str) -> str:
     water_c      = current.gt(0)
     erosion_mask = water_b.eq(0).And(water_c.eq(1))
     accrtn_mask  = water_b.eq(1).And(water_c.eq(0))
+    stable_mask  = water_b.eq(0).And(water_c.eq(0))
 
-    # True-colour RGB base
-    s2_rgb = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-        .filterBounds(aoi)
-        .filterDate(CURRENT_START, CURRENT_END)
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
-        .select(["B4", "B3", "B2"])
-        .median())
-
-    base_viz    = s2_rgb.visualize(**{"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000})
+    # Single-pass change map: dark ocean base + erosion (coral) + accretion (teal) + stable land (grey)
+    # Avoids a third ImageCollection scan — just NDWI composites already computed above
+    base_img    = ee.Image(0).visualize(**{"palette": ["#0D1B2A"]})  # ocean dark
+    stable_viz  = stable_mask.selfMask().visualize(**{"palette":  ["#1e3a5f"]})
     erosion_viz = erosion_mask.selfMask().visualize(**{"palette": ["#E05B4B"]})
     accrtn_viz  = accrtn_mask.selfMask().visualize(**{"palette":  ["#4CB9C0"]})
 
-    mosaic = ee.ImageCollection([base_viz, erosion_viz, accrtn_viz]).mosaic()
+    mosaic = ee.ImageCollection([base_img, stable_viz, erosion_viz, accrtn_viz]).mosaic()
 
     raw_url = mosaic.getThumbURL({
         "region": aoi,
@@ -85,7 +82,7 @@ def generate_thumb(slug: str) -> str:
         "format": "jpg",
     })
 
-    return f"/api/map-image?url={raw_url}"
+    return f"/api/map-image?url={quote(raw_url, safe='')}"
 
 
 class handler(BaseHTTPRequestHandler):
