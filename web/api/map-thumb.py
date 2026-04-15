@@ -10,6 +10,8 @@ import ee
 import json
 import os
 import base64
+import sys
+import traceback
 
 LOCATIONS = {
     "niue":             {"bbox": [-169.9647, -19.155, -169.78, -18.955]},
@@ -79,15 +81,14 @@ def generate_thumb(slug: str) -> str:
 
     # computePixels: gRPC compute path — same permissions as reduceRegion/evaluate()
     # Avoids /v1/projects/{proj}/thumbnails REST endpoint which returns 403 on non-commercial GEE
-    W = 1200
     lon_range = lon_max - lon_min
     lat_range = lat_max - lat_min
-    H = max(1, round(W * lat_range / lon_range))  # maintain aspect ratio
+    W = 800
+    H = max(1, round(W * lat_range / lon_range))
 
     pixel_bytes = ee.data.computePixels({
         "expression": ee.serializer.encode(mosaic, for_cloud_api=True),
-        "fileFormat": "JPEG",
-        "bandIds":    ["vis-red", "vis-green", "vis-blue"],
+        "fileFormat": "PNG",
         "grid": {
             "dimensions":      {"width": W, "height": H},
             "affineTransform": {
@@ -103,7 +104,7 @@ def generate_thumb(slug: str) -> str:
     })
 
     b64_img = base64.b64encode(pixel_bytes).decode()
-    return f"data:image/jpeg;base64,{b64_img}"
+    return f"data:image/png;base64,{b64_img}"
 
 
 class handler(BaseHTTPRequestHandler):
@@ -126,7 +127,9 @@ class handler(BaseHTTPRequestHandler):
         except ValueError as e:
             self._send(400, {"error": str(e)})
         except Exception as e:
-            self._send(500, {"error": str(e)})
+            tb = traceback.format_exc()
+            print(tb, file=sys.stderr)
+            self._send(500, {"error": str(e), "traceback": tb})
 
     def _send(self, code: int, data: dict):
         body = json.dumps(data).encode()
