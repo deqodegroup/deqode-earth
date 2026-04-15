@@ -2,16 +2,9 @@
 DEQODE EARTH — Sentinel-2 coastal change map thumbnail
 Python serverless (Vercel).
 
-Uses sampleRectangle().getInfo() — same gRPC path as reduceRegion().evaluate() in analyse.py.
-getThumbURL  → 403 (REST /thumbnails, blocked on non-commercial GEE)
-computePixels → 500 (unknown serialiser issue)
-sampleRectangle → gRPC, proven working path
-
-Steps:
-1. Build NDWI change mosaic (visualized RGB)
-2. Reproject to target scale so sampleRectangle returns ~300 px wide raw image
-3. Reconstruct RGB via Pillow, upscale to 800px, encode as base64 PNG
-4. Return data:image/png;base64,... in JSON
+Base layer: true-color Sentinel-2 RGB (B4/B3/B2) — photorealistic satellite view.
+Overlays:   erosion (coral #E05B4B) and accretion (teal #4CB9C0) from NDWI change.
+Method:     sampleRectangle().getInfo() — same gRPC path as analyse.py, no permission issues.
 """
 from http.server import BaseHTTPRequestHandler
 import ee
@@ -40,11 +33,10 @@ BASELINE_END   = "2019-12-31"
 CURRENT_START  = "2024-01-01"
 CURRENT_END    = "2024-12-31"
 
-# Target raw sample width before upscaling.
-# sampleRectangle limit is ~262,144 pixels total.
-# 400px wide: largest bbox (Fiji 0.8°x0.7°) → 400x350 = 140,000px — safe.
+# 400px raw sample — keeps all bboxes under sampleRectangle ~262k pixel limit.
+# Fiji (largest): 400x350 = 140,000px.
 RAW_W = 400
-OUT_W = 800  # final output width
+OUT_W = 800
 
 _initialised = False
 
@@ -72,11 +64,19 @@ def generate_thumb(slug: str) -> str:
 
     lon_range = lon_max - lon_min
     lat_range = lat_max - lat_min
-
-    # Scale in metres so that longitude spans ~RAW_W pixels.
-    # 111320 m ≈ 1° at equator.
     scale_m = max(30, (lon_range / RAW_W) * 111320)
 
+    # --- True-colour base (B4=Red, B3=Green, B2=Blue) ---
+    # This is the photorealistic "from orbit" satellite view.
+    true_color = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+        .filterBounds(aoi)
+        .filterDate(CURRENT_START, CURRENT_END)
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 10))
+        .select(["B4", "B3", "B2"])
+        .median()
+        .visualize(**{"min": 200, "max": 3000, "gamma": 1.4}))
+
+    # --- NDWI change detection ---
     def ndwi_composite(start, end):
         return (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
             .filterBounds(aoi)
@@ -90,48 +90,43 @@ def generate_thumb(slug: str) -> str:
     baseline = ndwi_composite(BASELINE_START, BASELINE_END)
     current  = ndwi_composite(CURRENT_START,  CURRENT_END)
 
-    # Threshold 0.1 (not 0) removes ambiguous mixed pixels at the land/water edge
+    # 0.1 threshold — removes ambiguous mixed/shore pixels that cause speckle
     water_b      = baseline.gt(0.1)
     water_c      = current.gt(0.1)
     erosion_mask = water_b.eq(0).And(water_c.eq(1))
     accrtn_mask  = water_b.eq(1).And(water_c.eq(0))
-    stable_mask  = water_b.eq(0).And(water_c.eq(0))
 
-    # Remove isolated single-pixel speckle — only keep change where neighbours agree
+    # Neighbourhood filter — drop isolated single pixels (speckle)
     kernel = ee.Kernel.square(radius=1)
-    erosion_mask = erosion_mask.reduceNeighborhood(
-        reducer=ee.Reducer.sum(), kernel=kernel).gte(2).selfMask()
-    accrtn_mask  = accrtn_mask.reduceNeighborhood(
-        reducer=ee.Reducer.sum(), kernel=kernel).gte(2).selfMask()
+    erosion_mask = (erosion_mask
+        .reduceNeighborhood(reducer=ee.Reducer.sum(), kernel=kernel)
+        .gte(2).selfMask())
+    accrtn_mask = (accrtn_mask
+        .reduceNeighborhood(reducer=ee.Reducer.sum(), kernel=kernel)
+        .gte(2).selfMask())
 
-    # Build visualised mosaic (outputs vis-red, vis-green, vis-blue uint8 bands)
-    base_img    = ee.Image(0).visualize(**{"palette": ["#0D1B2A"]})
-    stable_viz  = stable_mask.selfMask().visualize(**{"palette": ["#1e3a5f"]})
     erosion_viz = erosion_mask.visualize(**{"palette": ["#E05B4B"]})
     accrtn_viz  = accrtn_mask.visualize(**{"palette": ["#4CB9C0"]})
 
-    mosaic = ee.ImageCollection([base_img, stable_viz, erosion_viz, accrtn_viz]).mosaic()
+    # Mosaic: real satellite image as base, change overlays on top
+    mosaic = ee.ImageCollection([true_color, erosion_viz, accrtn_viz]).mosaic()
 
-    # Reproject to target scale so sampleRectangle returns a known pixel grid
+    # Reproject to target resolution, then sample pixels via gRPC
     mosaic_proj = mosaic.reproject(crs="EPSG:4326", scale=scale_m)
-
-    # sampleRectangle uses the same gRPC path as evaluate() — no permission issues
     rect = mosaic_proj.sampleRectangle(region=aoi, defaultValue=0).getInfo()
     props = rect["properties"]
 
-    r_rows = props["vis-red"]    # list[list[int]]
+    r_rows = props["vis-red"]
     g_rows = props["vis-green"]
     b_rows = props["vis-blue"]
 
     h = len(r_rows)
     w = len(r_rows[0]) if h > 0 else 1
 
-    # Flatten rows → bytes (values are 0-255 from visualize())
     r_flat = bytes([min(255, max(0, int(v))) for row in r_rows for v in row])
     g_flat = bytes([min(255, max(0, int(v))) for row in g_rows for v in row])
     b_flat = bytes([min(255, max(0, int(v))) for row in b_rows for v in row])
 
-    # Interleave into RGB
     rgb = bytearray(w * h * 3)
     rgb[0::3] = r_flat
     rgb[1::3] = g_flat
@@ -139,7 +134,6 @@ def generate_thumb(slug: str) -> str:
 
     img = Image.frombytes("RGB", (w, h), bytes(rgb))
 
-    # Upscale to OUT_W — LANCZOS for clean anti-aliased result
     new_h = max(1, round(h * OUT_W / w))
     img = img.resize((OUT_W, new_h), Image.LANCZOS)
 
