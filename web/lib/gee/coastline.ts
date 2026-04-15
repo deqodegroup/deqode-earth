@@ -43,38 +43,34 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
   const waterBaseline = baselineComposite.lt(-15);
   const waterCurrent  = currentComposite.lt(-15);
 
-  // Land-to-water = coastal loss (erosion), water-to-land = accretion
-  const erosionMask   = waterBaseline.eq(0).and(waterCurrent.eq(1));  // was land, now water
-  const accretionMask = waterBaseline.eq(1).and(waterCurrent.eq(0));  // was water, now land
+  // Land-to-water = erosion, water-to-land = accretion, land-to-land = stable
+  const erosionBand   = waterBaseline.eq(0).and(waterCurrent.eq(1))
+                          .multiply(ee.Image.pixelArea()).rename("erosion");
+  const accretionBand = waterBaseline.eq(1).and(waterCurrent.eq(0))
+                          .multiply(ee.Image.pixelArea()).rename("accretion");
+  const stableBand    = waterBaseline.eq(0).and(waterCurrent.eq(0))
+                          .multiply(ee.Image.pixelArea()).rename("stable");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function reduceArea(mask: any, bandName: string): Promise<number> {
-    return new Promise((resolve, reject) => {
-      mask.multiply(ee.Image.pixelArea()).rename(bandName)
+  // Single multiband reduceRegion — one GEE round-trip, composites computed once
+  const [erosion_m2_raw, accretion_m2_raw, stable_m2_raw] = await new Promise<[number, number, number]>(
+    (resolve, reject) => {
+      erosionBand.addBands(accretionBand).addBands(stableBand)
         .reduceRegion({
           reducer: ee.Reducer.sum(),
           geometry: region,
-          scale: 10,
+          scale: 30,       // 30 m — 9× fewer pixels than 10 m, well within timeout
           maxPixels: 1e9,
-          bestEffort: true,
-          tileScale: 4,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }).evaluate((result: any, err: any) => {
           if (err) return reject(new Error(String(err)));
-          resolve(result?.[bandName] ?? 0);
+          resolve([
+            result?.erosion   ?? 0,
+            result?.accretion ?? 0,
+            result?.stable    ?? 0,
+          ]);
         });
-    });
-  }
-
-  // Stable = was land, still land (no change)
-  const stableMask = waterBaseline.eq(0).and(waterCurrent.eq(0));
-
-  // Run all three in parallel
-  const [erosion_m2_raw, accretion_m2_raw, stable_m2_raw] = await Promise.all([
-    reduceArea(erosionMask,   "erosion"),
-    reduceArea(accretionMask, "accretion"),
-    reduceArea(stableMask,    "stable"),
-  ]);
+    }
+  );
 
   const [lonMin, , lonMax, latMax] = loc.bbox;
   const latMin = loc.bbox[1];
