@@ -188,7 +188,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
             Analysis Window
           </div>
           <div className="font-sans text-sm text-[var(--text-mid)]">
-            2019–2020 baseline · 2023–2025 current · Sentinel-2 optical · 30 m
+            2019 baseline · 2024 current · Sentinel-2 optical · 30 m
           </div>
         </div>
 
@@ -266,8 +266,8 @@ export function CoastlineModule({ loc }: { loc: Location }) {
                 ["Sensor",        "Sentinel-2 MSI (ESA Copernicus)"],
                 ["Bands",         "B3 Green + B8 NIR — NDWI water index"],
                 ["Cloud filter",  "< 20% cloud cover per scene"],
-                ["Baseline",      "2019 – 2020 (2-year median composite)"],
-                ["Current",       "2023 – 2025 (2-year median composite)"],
+                ["Baseline",      "2019 (annual median composite, ~80 scenes)"],
+                ["Current",       "2024 (annual median composite, ~85 scenes)"],
                 ["Resolution",    "30 m analysis scale"],
                 ["Water index",   "NDWI > 0 = water, ≤ 0 = land"],
                 ["Platform",      "Google Earth Engine"],

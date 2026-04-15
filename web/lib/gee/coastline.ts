@@ -5,9 +5,9 @@ import { type CoastlineMetrics } from "@/components/modules/coastline/MetricCard
 // Sentinel-2 SR — confirmed coverage across all 8 Pacific SIDS
 // Sentinel-1 SAR has ZERO coverage over Niue, Tuvalu, Kiribati, Marshall Islands
 const BASELINE_START = "2019-01-01";
-const BASELINE_END   = "2020-12-31";  // 2-year median for stable cloud-free composite
-const CURRENT_START  = "2023-01-01";
-const CURRENT_END    = "2025-03-31";  // 2-year current
+const BASELINE_END   = "2019-12-31";  // ~80 cloud-free scenes — fast, stable composite
+const CURRENT_START  = "2024-01-01";
+const CURRENT_END    = "2024-12-31";  // ~85 cloud-free scenes — last full year
 
 const SCALE       = 30;               // 30m — fast, accurate for island-scale change
 const PIXEL_AREA  = SCALE * SCALE;    // m² per pixel (hardcoded avoids ee.Image.pixelArea() overhead)
@@ -94,7 +94,7 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
     erosion_m2:   Math.round(erosion_m2),
     accretion_m2: Math.round(accretion_m2),
     period_start: "2019",
-    period_end:   "2025",
+    period_end:   "2024",
     mapImageUrl:  "",
   };
 }
