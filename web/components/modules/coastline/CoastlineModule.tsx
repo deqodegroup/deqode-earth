@@ -327,9 +327,62 @@ export function CoastlineModule({ loc }: { loc: Location }) {
             overlayBounds={overlayBounds}
           />
 
+          {/* Floating stats — appear on the live map after analysis */}
+          {state.status === "done" && (
+            <>
+              {/* Top-left: key change metrics */}
+              <div className="absolute top-3 left-3 z-[1000] flex flex-col gap-2">
+                <div className="bg-[#0D1B2A]/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
+                  <div className="font-mono text-[0.58rem] tracking-[0.15em] uppercase text-[var(--text-dim)] mb-0.5">Net Shoreline Change</div>
+                  <div className={`font-mono text-lg font-semibold leading-none ${state.data.net_change_m < -1 ? "text-[#E05B4B]" : state.data.net_change_m > 1 ? "text-[#4CB9C0]" : "text-white"}`}>
+                    {state.data.net_change_m > 0 ? "+" : ""}{state.data.net_change_m.toFixed(1)} m
+                  </div>
+                </div>
+                <div className="bg-[#0D1B2A]/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-[#E05B4B]/30">
+                  <div className="font-mono text-[0.58rem] tracking-[0.15em] uppercase text-[var(--text-dim)] mb-0.5">Land Lost</div>
+                  <div className="font-mono text-base font-semibold text-[#E05B4B] leading-none">
+                    {(state.data.erosion_m2 / 10_000).toFixed(2)} ha
+                  </div>
+                </div>
+                <div className="bg-[#0D1B2A]/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-[#4CB9C0]/30">
+                  <div className="font-mono text-[0.58rem] tracking-[0.15em] uppercase text-[var(--text-dim)] mb-0.5">Land Gained</div>
+                  <div className="font-mono text-base font-semibold text-[#4CB9C0] leading-none">
+                    {(state.data.accretion_m2 / 10_000).toFixed(2)} ha
+                  </div>
+                </div>
+              </div>
+
+              {/* Top-right: stable % + period */}
+              <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2 items-end">
+                <div className="bg-[#0D1B2A]/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
+                  <div className="font-mono text-[0.58rem] tracking-[0.15em] uppercase text-[var(--text-dim)] mb-0.5">Stable Coast</div>
+                  <div className="font-mono text-lg font-semibold text-white leading-none">
+                    {state.data.stable_pct.toFixed(0)}%
+                  </div>
+                </div>
+                <div className="bg-[#0D1B2A]/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
+                  <div className="font-mono text-[0.58rem] tracking-[0.15em] uppercase text-[var(--text-dim)] mb-0.5">Period</div>
+                  <div className="font-mono text-xs text-white leading-none">
+                    {state.data.period_start} → {state.data.period_end}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom-left: sensor badge */}
+              <div className="absolute bottom-8 left-3 z-[1000]">
+                <div className="bg-[#0D1B2A]/80 backdrop-blur-sm rounded px-2.5 py-1.5 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse" />
+                  <span className="font-mono text-[0.6rem] tracking-[0.12em] uppercase text-[var(--text-dim)]">
+                    Sentinel-2 · NDWI · 30 m · GEE
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+
           {/* Overlay loading indicator */}
           {thumbState === "loading" && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000]
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000]
                             bg-ocean/85 backdrop-blur-sm rounded px-4 py-2 flex items-center gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse" />
               <span className="font-mono text-xs tracking-[0.14em] uppercase text-teal">
@@ -340,7 +393,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
 
           {/* Pre-analysis hint */}
           {state.status === "idle" && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000]
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000]
                             bg-ocean/80 backdrop-blur-sm rounded px-4 py-2">
               <span className="font-mono text-xs tracking-[0.1em] uppercase text-[var(--text-dim)]">
                 Run Analysis to overlay coastal change data
@@ -350,7 +403,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
 
           {/* Change overlay error */}
           {thumbState === "error" && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000]
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000]
                             bg-ocean/85 rounded px-4 py-2">
               <span className="font-mono text-xs tracking-[0.1em] uppercase text-coral">
                 Change overlay failed — metrics below are unaffected

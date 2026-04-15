@@ -30,7 +30,7 @@ export function CoastlineMap({ center, zoom, overlayUrl, overlayBounds }: Coastl
         attributionControl: true,
       });
 
-      // Esri World Imagery — photorealistic satellite tiles, no API key required
+      // Esri World Imagery — photorealistic satellite base
       L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         {
@@ -38,6 +38,12 @@ export function CoastlineMap({ center, zoom, overlayUrl, overlayBounds }: Coastl
           maxZoom: 18,
           minZoom: 6,
         }
+      ).addTo(map);
+
+      // Esri reference labels — place names, coastlines, ocean labels (Google Earth feel)
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom: 18, minZoom: 6, opacity: 0.85 }
       ).addTo(map);
 
       mapRef.current = map;
@@ -72,5 +78,5 @@ export function CoastlineMap({ center, zoom, overlayUrl, overlayBounds }: Coastl
     });
   }, [overlayUrl, overlayBounds]);
 
-  return <div ref={containerRef} className="w-full" style={{ height: "480px" }} />;
+  return <div ref={containerRef} className="w-full" style={{ height: "560px" }} />;
 }
