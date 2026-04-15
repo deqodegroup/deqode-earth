@@ -1,8 +1,7 @@
 {
   "functions": {
     "api/analyse.py": {
-      "maxDuration": 120,
-      "runtime": "vercel-python@3.0.7"
+      "maxDuration": 120
     }
   }
 }
