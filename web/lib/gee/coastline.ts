@@ -55,6 +55,8 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
           geometry: region,
           scale: 10,
           maxPixels: 1e9,
+          bestEffort: true,
+          tileScale: 4,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }).evaluate((result: any, err: any) => {
           if (err) return reject(new Error(String(err)));
