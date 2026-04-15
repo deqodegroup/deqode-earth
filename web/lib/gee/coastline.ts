@@ -2,9 +2,9 @@ import ee from "@google/earthengine";
 import { type Location } from "@/lib/locations";
 import { type CoastlineMetrics } from "@/components/modules/coastline/MetricCards";
 
-const BASELINE_START = "2019-01-01";
-const BASELINE_END   = "2021-12-31";
-const CURRENT_START  = "2022-01-01";
+const BASELINE_START = "2020-01-01";
+const BASELINE_END   = "2020-12-31";
+const CURRENT_START  = "2025-01-01";
 const CURRENT_END    = "2025-12-31";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,9 +17,10 @@ function buildRegionAndCollections(loc: Location): { region: any; baselineCompos
     return ee.ImageCollection("COPERNICUS/S1_GRD")
       .filterBounds(region)
       .filterDate(start, end)
+      .filter(ee.Filter.eq("instrumentMode", "IW"))
       .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
+      .filter(ee.Filter.eq("orbitProperties_pass", "DESCENDING"))
       .select("VV")
-      .limit(20)   // cap images to keep GEE compute fast
       .mean()
       .clip(region);
   }
@@ -52,7 +53,7 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
         .reduceRegion({
           reducer: ee.Reducer.sum(),
           geometry: region,
-          scale: 30,
+          scale: 10,
           maxPixels: 1e9,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }).evaluate((result: any, err: any) => {
@@ -86,8 +87,8 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
     stable_pct:   Math.round(stable_pct   * 10) / 10,
     erosion_m2:   Math.round(erosion_m2),
     accretion_m2: Math.round(accretion_m2),
-    period_start: "2019–2021",
-    period_end:   "2022–2025",
+    period_start: "2020",
+    period_end:   "2025",
     mapImageUrl:  "",  // loaded separately via /api/map-thumb
   };
 }
