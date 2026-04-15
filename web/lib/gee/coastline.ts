@@ -52,7 +52,7 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
         .reduceRegion({
           reducer: ee.Reducer.sum(),
           geometry: region,
-          scale: 10,
+          scale: 30,
           maxPixels: 1e9,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }).evaluate((result: any, err: any) => {
