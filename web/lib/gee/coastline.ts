@@ -33,23 +33,24 @@ function buildRegionAndCollections(loc: Location): { region: any; baselineCompos
 }
 
 /**
- * Returns erosion / accretion metrics using a SINGLE GEE reduceRegion call
- * (multiband) instead of 3 separate calls — keeps latency under 60 s.
+ * Returns erosion / accretion / stable metrics via 3 parallel GEE reduceRegion calls.
+ * Matches the Streamlit Python logic: lt(-15) water mask, pixelArea() multiplication.
  */
 export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics> {
   const { region, baselineComposite, currentComposite } = buildRegionAndCollections(loc);
 
-  const baseline = baselineComposite.gt(-15).rename("baseline");
-  const current  = currentComposite.gt(-15).rename("current");
+  // Water mask: VV < -15 dB = water (matches Streamlit logic exactly)
+  const waterBaseline = baselineComposite.lt(-15);
+  const waterCurrent  = currentComposite.lt(-15);
 
-  const erosionMask   = baseline.eq(1).and(current.eq(0)).rename("erosion");
-  const accretionMask = baseline.eq(0).and(current.eq(1)).rename("accretion");
-  const stableMask    = baseline.eq(current).rename("stable");
+  // Land-to-water = coastal loss (erosion), water-to-land = accretion
+  const erosionMask   = waterBaseline.eq(0).and(waterCurrent.eq(1));  // was land, now water
+  const accretionMask = waterBaseline.eq(1).and(waterCurrent.eq(0));  // was water, now land
 
-  // Single multiband reduceRegion — one GEE round-trip for all three counts
-  const counts = await new Promise<{ erosion: number; accretion: number; stable: number }>(
-    (resolve, reject) => {
-      ee.Image([erosionMask, accretionMask, stableMask])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function reduceArea(mask: any, bandName: string): Promise<number> {
+    return new Promise((resolve, reject) => {
+      mask.multiply(ee.Image.pixelArea()).rename(bandName)
         .reduceRegion({
           reducer: ee.Reducer.sum(),
           geometry: region,
@@ -60,27 +61,32 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }).evaluate((result: any, err: any) => {
           if (err) return reject(new Error(String(err)));
-          resolve({
-            erosion:   result?.erosion   ?? 0,
-            accretion: result?.accretion ?? 0,
-            stable:    result?.stable    ?? 0,
-          });
+          resolve(result?.[bandName] ?? 0);
         });
-    }
-  );
+    });
+  }
+
+  // Stable = was land, still land (no change)
+  const stableMask = waterBaseline.eq(0).and(waterCurrent.eq(0));
+
+  // Run all three in parallel
+  const [erosion_m2_raw, accretion_m2_raw, stable_m2_raw] = await Promise.all([
+    reduceArea(erosionMask,   "erosion"),
+    reduceArea(accretionMask, "accretion"),
+    reduceArea(stableMask,    "stable"),
+  ]);
 
   const [lonMin, , lonMax, latMax] = loc.bbox;
   const latMin = loc.bbox[1];
-  const pixelArea   = 100;
-  const erosion_m2  = counts.erosion   * pixelArea;
-  const accretion_m2 = counts.accretion * pixelArea;
-  const totalPx     = counts.erosion + counts.accretion + counts.stable;
+  const erosion_m2   = erosion_m2_raw;
+  const accretion_m2 = accretion_m2_raw;
+  const totalM2      = erosion_m2 + accretion_m2 + stable_m2_raw;
 
   const coastLengthM = Math.sqrt((lonMax - lonMin) ** 2 + (latMax - latMin) ** 2) * 111_000;
   const erosion_m    = erosion_m2  / Math.max(coastLengthM, 1);
   const accretion_m  = accretion_m2 / Math.max(coastLengthM, 1);
   const net_change_m = accretion_m - erosion_m;
-  const stable_pct   = totalPx > 0 ? (counts.stable / totalPx) * 100 : 0;
+  const stable_pct   = totalM2 > 0 ? (stable_m2_raw / totalM2) * 100 : 0;
 
   return {
     erosion_m:    Math.round(erosion_m    * 10) / 10,
@@ -102,10 +108,10 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
 export async function generateMapThumb(loc: Location): Promise<string> {
   const { region, baselineComposite, currentComposite } = buildRegionAndCollections(loc);
 
-  const baseline = baselineComposite.gt(-15);
-  const current  = currentComposite.gt(-15);
-  const erosionMask   = baseline.eq(1).and(current.eq(0));
-  const accretionMask = baseline.eq(0).and(current.eq(1));
+  const waterBaseline = baselineComposite.lt(-15);
+  const waterCurrent  = currentComposite.lt(-15);
+  const erosionMask   = waterBaseline.eq(0).and(waterCurrent.eq(1));  // was land, now water
+  const accretionMask = waterBaseline.eq(1).and(waterCurrent.eq(0));  // was water, now land
 
   const sarViz       = currentComposite.visualize({ bands: ["VV"], min: -25, max: 0, palette: ["#0D1B2A", "#2a4a6b", "#7ab3c8"] });
   const erosionViz   = erosionMask.selfMask().visualize({ palette: ["#E05B4B"] });
