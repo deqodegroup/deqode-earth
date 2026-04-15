@@ -42,8 +42,8 @@ CURRENT_END    = "2024-12-31"
 
 # Target raw sample width before upscaling.
 # sampleRectangle limit is ~262,144 pixels total.
-# 300px wide keeps all bboxes well under that limit.
-RAW_W = 300
+# 400px wide: largest bbox (Fiji 0.8°x0.7°) → 400x350 = 140,000px — safe.
+RAW_W = 400
 OUT_W = 800  # final output width
 
 _initialised = False
@@ -131,9 +131,9 @@ def generate_thumb(slug: str) -> str:
 
     img = Image.frombytes("RGB", (w, h), bytes(rgb))
 
-    # Upscale to OUT_W — NEAREST preserves hard categorical edges
+    # Upscale to OUT_W — LANCZOS for clean anti-aliased result
     new_h = max(1, round(h * OUT_W / w))
-    img = img.resize((OUT_W, new_h), Image.NEAREST)
+    img = img.resize((OUT_W, new_h), Image.LANCZOS)
 
     buf = io.BytesIO()
     img.save(buf, format="PNG")
