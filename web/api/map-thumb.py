@@ -1,24 +1,25 @@
 """
 DEQODE EARTH — Sentinel-2 coastal change map thumbnail
-Python serverless (Vercel) — gRPC fast path, same GEE_B64_KEY env var.
-Returns a proxied /api/map-image URL so the frontend avoids CORS.
+Python serverless (Vercel) — uses ee.data.computePixels (gRPC, same path as evaluate()).
+getThumbURL uses REST /thumbnails API which returns 403 on non-commercial GEE projects.
+computePixels uses the same gRPC compute endpoint as reduceRegion — no permission issues.
+Returns base64 data URI in JSON so no /api/map-image proxy is needed.
 """
 from http.server import BaseHTTPRequestHandler
-from urllib.parse import quote
 import ee
 import json
 import os
 import base64
 
 LOCATIONS = {
-    "niue":             {"bbox": [-169.9647, -19.155, -169.78, -18.955], "live": True},
-    "palau":            {"bbox": [134.4, 7.0, 134.7, 7.4],               "live": True},
-    "fiji":             {"bbox": [177.2, -18.2, 178.0, -17.5],           "live": True},
-    "tuvalu":           {"bbox": [179.0, -8.7, 179.3, -8.4],             "live": False},
-    "kiribati":         {"bbox": [172.9, 1.3, 173.1, 1.5],               "live": False},
-    "marshall-islands": {"bbox": [171.0, 7.0, 171.4, 7.2],               "live": False},
-    "vanuatu":          {"bbox": [168.1, -17.8, 168.5, -17.5],           "live": False},
-    "solomon-islands":  {"bbox": [159.9, -9.5, 160.2, -9.3],             "live": False},
+    "niue":             {"bbox": [-169.9647, -19.155, -169.78, -18.955]},
+    "palau":            {"bbox": [134.4, 7.0, 134.7, 7.4]},
+    "fiji":             {"bbox": [177.2, -18.2, 178.0, -17.5]},
+    "tuvalu":           {"bbox": [179.0, -8.7, 179.3, -8.4]},
+    "kiribati":         {"bbox": [172.9, 1.3, 173.1, 1.5]},
+    "marshall-islands": {"bbox": [171.0, 7.0, 171.4, 7.2]},
+    "vanuatu":          {"bbox": [168.1, -17.8, 168.5, -17.5]},
+    "solomon-islands":  {"bbox": [159.9, -9.5, 160.2, -9.3]},
 }
 
 BASELINE_START = "2019-01-01"
@@ -46,7 +47,8 @@ def generate_thumb(slug: str) -> str:
         raise ValueError(f"Unknown slug: {slug}")
 
     bbox = loc["bbox"]
-    aoi  = ee.Geometry.Rectangle(bbox)
+    lon_min, lat_min, lon_max, lat_max = bbox
+    aoi = ee.Geometry.Rectangle(bbox)
 
     def ndwi_composite(start, end):
         return (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
@@ -67,22 +69,41 @@ def generate_thumb(slug: str) -> str:
     accrtn_mask  = water_b.eq(1).And(water_c.eq(0))
     stable_mask  = water_b.eq(0).And(water_c.eq(0))
 
-    # Single-pass change map: dark ocean base + erosion (coral) + accretion (teal) + stable land (grey)
-    # Avoids a third ImageCollection scan — just NDWI composites already computed above
-    base_img    = ee.Image(0).visualize(**{"palette": ["#0D1B2A"]})  # ocean dark
-    stable_viz  = stable_mask.selfMask().visualize(**{"palette":  ["#1e3a5f"]})
+    # Single-pass change map — dark ocean base + stable land + erosion + accretion
+    base_img    = ee.Image(0).visualize(**{"palette": ["#0D1B2A"]})
+    stable_viz  = stable_mask.selfMask().visualize(**{"palette": ["#1e3a5f"]})
     erosion_viz = erosion_mask.selfMask().visualize(**{"palette": ["#E05B4B"]})
-    accrtn_viz  = accrtn_mask.selfMask().visualize(**{"palette":  ["#4CB9C0"]})
+    accrtn_viz  = accrtn_mask.selfMask().visualize(**{"palette": ["#4CB9C0"]})
 
     mosaic = ee.ImageCollection([base_img, stable_viz, erosion_viz, accrtn_viz]).mosaic()
 
-    raw_url = mosaic.getThumbURL({
-        "region": aoi,
-        "dimensions": 800,
-        "format": "jpg",
+    # computePixels: gRPC compute path — same permissions as reduceRegion/evaluate()
+    # Avoids /v1/projects/{proj}/thumbnails REST endpoint which returns 403 on non-commercial GEE
+    W = 1200
+    lon_range = lon_max - lon_min
+    lat_range = lat_max - lat_min
+    H = max(1, round(W * lat_range / lon_range))  # maintain aspect ratio
+
+    pixel_bytes = ee.data.computePixels({
+        "expression": ee.serializer.encode(mosaic, for_cloud_api=True),
+        "fileFormat": "JPEG",
+        "bandIds":    ["vis-red", "vis-green", "vis-blue"],
+        "grid": {
+            "dimensions":      {"width": W, "height": H},
+            "affineTransform": {
+                "scaleX":     lon_range / W,
+                "shearX":     0,
+                "translateX": lon_min,
+                "shearY":     0,
+                "scaleY":     -(lat_range / H),
+                "translateY": lat_max,
+            },
+            "crsCode": "EPSG:4326",
+        }
     })
 
-    return f"/api/map-image?url={quote(raw_url, safe='')}"
+    b64_img = base64.b64encode(pixel_bytes).decode()
+    return f"data:image/jpeg;base64,{b64_img}"
 
 
 class handler(BaseHTTPRequestHandler):
@@ -99,8 +120,8 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             init_gee()
-            map_image_url = generate_thumb(slug)
-            self._send(200, {"mapImageUrl": map_image_url})
+            data_url = generate_thumb(slug)
+            self._send(200, {"mapImageUrl": data_url})
 
         except ValueError as e:
             self._send(400, {"error": str(e)})

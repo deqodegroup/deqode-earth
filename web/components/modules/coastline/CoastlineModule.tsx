@@ -327,32 +327,8 @@ export function CoastlineModule({ loc }: { loc: Location }) {
       {/* Results */}
       {state.status === "done" && (
         <div className="space-y-4">
-          <div className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)]">
-            Results · Baseline {state.data.period_start} · Current {state.data.period_end}
-          </div>
-          <MetricCards data={state.data} />
 
-          {/* Coordinates + share */}
-          <div className="rounded-lg border border-[var(--border)] bg-surface px-5 py-3 flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <div className="font-mono text-xs tracking-[0.12em] uppercase text-[var(--text-dim)] mb-1">
-                Analysis Boundary
-              </div>
-              <div className="font-mono text-xs text-[var(--text-mid)]">
-                SW {sw} · NE {ne}
-              </div>
-            </div>
-            <button
-              onClick={copyShareLink}
-              className="font-mono text-xs tracking-[0.08em] uppercase px-3 py-1.5 rounded
-                         border border-[var(--border)] text-[var(--text-dim)]
-                         hover:border-teal hover:text-teal transition-colors"
-            >
-              {copied ? "Copied!" : "Share Results"}
-            </button>
-          </div>
-
-          {/* Satellite change map */}
+          {/* Satellite change map — first and prominent */}
           {thumbState !== "idle" && (
             <>
               {fullscreen && mapImageUrl && (
@@ -364,42 +340,43 @@ export function CoastlineModule({ loc }: { loc: Location }) {
               )}
               <div className="rounded-lg border border-[var(--border)] bg-surface overflow-hidden">
                 <div className="px-5 py-3 border-b border-[var(--border)] flex items-center justify-between">
-                  <span className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)]">
-                    Sentinel-2 Coastal Change Map
-                  </span>
                   <div className="flex items-center gap-4">
+                    <span className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)]">
+                      Sentinel-2 Coastal Change Map
+                    </span>
                     <div className="flex items-center gap-4 font-mono text-xs tracking-[0.1em] uppercase">
                       <span className="flex items-center gap-1.5">
-                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#E05B4B]" />
+                        <span className="inline-block w-2 h-2 rounded-full bg-[#E05B4B]" />
                         <span className="text-[var(--text-dim)]">Erosion</span>
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#4CB9C0]" />
+                        <span className="inline-block w-2 h-2 rounded-full bg-[#4CB9C0]" />
                         <span className="text-[var(--text-dim)]">Accretion</span>
                       </span>
                     </div>
-                    {mapImageUrl && (
-                      <button
-                        onClick={() => setFullscreen(true)}
-                        className="font-mono text-xs tracking-[0.1em] uppercase
-                                   px-2.5 py-1 rounded border border-[var(--border)]
-                                   text-[var(--text-dim)] hover:border-teal hover:text-teal transition-colors"
-                      >
-                        Fullscreen
-                      </button>
-                    )}
                   </div>
+                  {mapImageUrl && (
+                    <button
+                      onClick={() => setFullscreen(true)}
+                      className="font-mono text-xs tracking-[0.1em] uppercase
+                                 px-2.5 py-1 rounded border border-[var(--border)]
+                                 text-[var(--text-dim)] hover:border-teal hover:text-teal transition-colors"
+                    >
+                      Fullscreen
+                    </button>
+                  )}
                 </div>
 
                 {thumbState === "loading" && (
-                  <div className="px-6 py-10 text-center">
-                    <div className="font-mono text-xs tracking-[0.2em] uppercase text-teal mb-2">
+                  <div className="min-h-[420px] flex flex-col items-center justify-center gap-3
+                                  bg-[#0D1B2A]">
+                    <div className="font-mono text-xs tracking-[0.2em] uppercase text-teal">
                       Rendering Change Map
                     </div>
                     <div className="font-sans text-sm text-[var(--text-dim)]">
-                      Generating satellite change image…
+                      Computing Sentinel-2 pixel data…
                     </div>
-                    <div className="mt-4 w-40 mx-auto h-0.5 bg-surface2 rounded overflow-hidden">
+                    <div className="mt-2 w-40 h-0.5 bg-surface2 rounded overflow-hidden">
                       <div className="h-full bg-teal rounded w-1/2" style={{ animation: "pulse 1.5s ease-in-out infinite" }} />
                     </div>
                   </div>
@@ -411,34 +388,65 @@ export function CoastlineModule({ loc }: { loc: Location }) {
                     src={mapImageUrl}
                     alt={`${loc.name} coastline change`}
                     className="w-full block cursor-zoom-in"
+                    style={{ minHeight: "320px", objectFit: "cover" }}
                     onClick={() => setFullscreen(true)}
                   />
                 )}
 
                 {thumbState === "error" && (
-                  <div className="px-6 py-6 text-center font-sans text-sm text-[var(--text-dim)]">
-                    Map image unavailable — metrics above are unaffected.
+                  <div className="min-h-[200px] flex items-center justify-center
+                                  font-sans text-sm text-[var(--text-dim)]">
+                    Map rendering failed — metrics below are unaffected.
                   </div>
                 )}
 
-                <div className="px-5 py-2 border-t border-[var(--border)]">
+                <div className="px-5 py-2 border-t border-[var(--border)] flex items-center justify-between">
                   <span className="font-mono text-[0.65rem] tracking-[0.08em] uppercase text-[var(--text-dim)]">
-                    Sentinel-2 MSI · NDWI water index · 30 m resolution · Google Earth Engine
+                    Sentinel-2 MSI · NDWI · 30 m · Google Earth Engine · {state.data.period_start}–{state.data.period_end}
+                  </span>
+                  <span className="font-mono text-[0.65rem] tracking-[0.08em] uppercase text-[var(--text-dim)]">
+                    SW {sw} · NE {ne}
                   </span>
                 </div>
               </div>
             </>
           )}
 
-          {/* Interpretation — plain English */}
-          <div className="rounded-lg border border-[var(--border)] bg-surface p-5"
-               style={{ borderLeftColor: "rgba(76,185,192,0.45)", borderLeftWidth: "2px" }}>
-            <div className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)] mb-2">
-              What This Means
+          {/* Metrics */}
+          <div className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)]">
+            Results · Baseline {state.data.period_start} · Current {state.data.period_end}
+          </div>
+          <MetricCards data={state.data} />
+
+          {/* Interpretation + share row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 rounded-lg border border-[var(--border)] bg-surface p-5"
+                 style={{ borderLeftColor: "rgba(76,185,192,0.45)", borderLeftWidth: "2px" }}>
+              <div className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)] mb-2">
+                What This Means
+              </div>
+              <p className="font-sans text-sm text-[var(--text-mid)] leading-relaxed">
+                {getInterpretation(state.data)}
+              </p>
             </div>
-            <p className="font-sans text-sm text-[var(--text-mid)] leading-relaxed">
-              {getInterpretation(state.data)}
-            </p>
+            <div className="rounded-lg border border-[var(--border)] bg-surface px-5 py-4 flex flex-col justify-between gap-3">
+              <div>
+                <div className="font-mono text-xs tracking-[0.12em] uppercase text-[var(--text-dim)] mb-1">
+                  Analysis Boundary
+                </div>
+                <div className="font-mono text-xs text-[var(--text-mid)] leading-relaxed">
+                  SW {sw}<br />NE {ne}
+                </div>
+              </div>
+              <button
+                onClick={copyShareLink}
+                className="font-mono text-xs tracking-[0.08em] uppercase px-3 py-2 rounded
+                           border border-[var(--border)] text-[var(--text-dim)]
+                           hover:border-teal hover:text-teal transition-colors w-full"
+              >
+                {copied ? "Copied!" : "Share Results"}
+              </button>
+            </div>
           </div>
         </div>
       )}
