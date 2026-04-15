@@ -3,7 +3,7 @@ import { initGEE } from "@/lib/gee/auth";
 import { analyseCoastline } from "@/lib/gee/coastline";
 import { LOCATIONS } from "@/lib/locations";
 
-export const maxDuration = 120; // seconds — GEE requests can be slow
+export const maxDuration = 300; // seconds — Pro plan max, GEE requests can be slow
 
 export async function POST(req: Request) {
   let body: { slug?: string };

@@ -3,7 +3,7 @@ import { initGEE } from "@/lib/gee/auth";
 import { generateMapThumb } from "@/lib/gee/coastline";
 import { LOCATIONS } from "@/lib/locations";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   let body: { slug?: string };
