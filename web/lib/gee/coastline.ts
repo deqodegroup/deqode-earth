@@ -43,46 +43,45 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
   const waterBaseline = baselineComposite.lt(-15);
   const waterCurrent  = currentComposite.lt(-15);
 
-  // Land-to-water = erosion, water-to-land = accretion, land-to-land = stable
-  const erosionBand   = waterBaseline.eq(0).and(waterCurrent.eq(1))
-                          .multiply(ee.Image.pixelArea()).rename("erosion");
-  const accretionBand = waterBaseline.eq(1).and(waterCurrent.eq(0))
-                          .multiply(ee.Image.pixelArea()).rename("accretion");
-  const stableBand    = waterBaseline.eq(0).and(waterCurrent.eq(0))
-                          .multiply(ee.Image.pixelArea()).rename("stable");
+  // Binary masks — no pixelArea() in the GEE graph, keeps compute graph minimal
+  const erosionMask   = waterBaseline.eq(0).and(waterCurrent.eq(1)).rename("erosion");
+  const accretionMask = waterBaseline.eq(1).and(waterCurrent.eq(0)).rename("accretion");
+  const stableMask    = waterBaseline.eq(0).and(waterCurrent.eq(0)).rename("stable");
 
   // Single multiband reduceRegion — one GEE round-trip, composites computed once
-  const [erosion_m2_raw, accretion_m2_raw, stable_m2_raw] = await new Promise<[number, number, number]>(
+  // scale=100m uses GEE's 100m pyramid (~37k pixels for Niue) — completes in seconds
+  const PIXEL_AREA_M2 = 100 * 100; // 100m × 100m per pixel
+  const counts = await new Promise<{ erosion: number; accretion: number; stable: number }>(
     (resolve, reject) => {
-      erosionBand.addBands(accretionBand).addBands(stableBand)
+      erosionMask.addBands(accretionMask).addBands(stableMask)
         .reduceRegion({
           reducer: ee.Reducer.sum(),
           geometry: region,
-          scale: 30,       // 30 m — 9× fewer pixels than 10 m, well within timeout
+          scale: 100,
           maxPixels: 1e9,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }).evaluate((result: any, err: any) => {
           if (err) return reject(new Error(String(err)));
-          resolve([
-            result?.erosion   ?? 0,
-            result?.accretion ?? 0,
-            result?.stable    ?? 0,
-          ]);
+          resolve({
+            erosion:   result?.erosion   ?? 0,
+            accretion: result?.accretion ?? 0,
+            stable:    result?.stable    ?? 0,
+          });
         });
     }
   );
 
   const [lonMin, , lonMax, latMax] = loc.bbox;
   const latMin = loc.bbox[1];
-  const erosion_m2   = erosion_m2_raw;
-  const accretion_m2 = accretion_m2_raw;
-  const totalM2      = erosion_m2 + accretion_m2 + stable_m2_raw;
+  const erosion_m2   = counts.erosion   * PIXEL_AREA_M2;
+  const accretion_m2 = counts.accretion * PIXEL_AREA_M2;
+  const totalM2      = (counts.erosion + counts.accretion + counts.stable) * PIXEL_AREA_M2;
 
   const coastLengthM = Math.sqrt((lonMax - lonMin) ** 2 + (latMax - latMin) ** 2) * 111_000;
   const erosion_m    = erosion_m2  / Math.max(coastLengthM, 1);
   const accretion_m  = accretion_m2 / Math.max(coastLengthM, 1);
   const net_change_m = accretion_m - erosion_m;
-  const stable_pct   = totalM2 > 0 ? (stable_m2_raw / totalM2) * 100 : 0;
+  const stable_pct   = totalM2 > 0 ? ((counts.stable * PIXEL_AREA_M2) / totalM2) * 100 : 0;
 
   return {
     erosion_m:    Math.round(erosion_m    * 10) / 10,
