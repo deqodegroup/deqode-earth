@@ -1,33 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import { type Location } from "@/lib/locations";
 import { MetricCards, type CoastlineMetrics } from "./MetricCards";
 
-function FullscreenMap({ url, alt, onClose }: { url: string; alt: string; onClose: () => void }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 font-mono text-xs tracking-[0.1em] uppercase
-                   text-[var(--text-dim)] hover:text-white border border-[var(--border)]
-                   hover:border-white px-3 py-1.5 rounded transition-colors"
-      >
-        Close
-      </button>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={url}
-        alt={alt}
-        className="max-w-full max-h-full object-contain rounded"
-        onClick={(e) => e.stopPropagation()}
-      />
-    </div>
-  );
-}
+// Leaflet must not run on the server
+const CoastlineMap = dynamic(
+  () => import("./CoastlineMap").then((m) => ({ default: m.CoastlineMap })),
+  { ssr: false }
+);
 
 const ANALYSIS_STEPS = [
   "Connecting",
@@ -50,6 +32,13 @@ function formatCoord(val: number, isLat: boolean): string {
   return `${abs}°${dir}`;
 }
 
+function bboxZoom(lonRange: number): number {
+  if (lonRange < 0.25) return 12;
+  if (lonRange < 0.5)  return 11;
+  if (lonRange < 1.0)  return 10;
+  return 9;
+}
+
 type AnalysisState =
   | { status: "idle" }
   | { status: "running" }
@@ -61,15 +50,24 @@ type ThumbState = "idle" | "loading" | "done" | "error";
 const cacheKey = (slug: string) => `deqode-earth-${slug}-coastline`;
 
 export function CoastlineModule({ loc }: { loc: Location }) {
-  const [state, setState] = useState<AnalysisState>({ status: "idle" });
-  const [fullscreen, setFullscreen] = useState(false);
+  const [state, setState]         = useState<AnalysisState>({ status: "idle" });
   const [thumbState, setThumbState] = useState<ThumbState>("idle");
-  const [mapImageUrl, setMapImageUrl] = useState("");
+  const [overlayUrl, setOverlayUrl] = useState<string | undefined>(undefined);
+  const [overlayBounds, setOverlayBounds] = useState<[[number, number], [number, number]] | undefined>(undefined);
   const [specsOpen, setSpecsOpen] = useState(false);
   const [analysisStep, setAnalysisStep] = useState(0);
-  const [lastRun, setLastRun] = useState<number | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [lastRun, setLastRun]     = useState<number | null>(null);
+  const [copied, setCopied]       = useState(false);
   const stepTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Map centre + zoom derived from bbox
+  const lonRange = loc.bbox[2] - loc.bbox[0];
+  const latRange = loc.bbox[3] - loc.bbox[1];
+  const mapCenter: [number, number] = [
+    (loc.bbox[1] + loc.bbox[3]) / 2,
+    (loc.bbox[0] + loc.bbox[2]) / 2,
+  ];
+  const mapZoom = bboxZoom(lonRange);
 
   // Restore cached result on mount
   useEffect(() => {
@@ -92,7 +90,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
     clearStepTimers();
     setState({ status: "running" });
     setAnalysisStep(0);
-    setMapImageUrl("");
+    setOverlayUrl(undefined);
     setThumbState("idle");
 
     stepTimers.current = [
@@ -122,6 +120,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
         localStorage.setItem(cacheKey(loc.slug), JSON.stringify({ data, timestamp: now }));
       } catch {}
 
+      // Fetch change overlay in the background
       setThumbState("loading");
       fetch("/api/map-thumb", {
         method: "POST",
@@ -130,8 +129,15 @@ export function CoastlineModule({ loc }: { loc: Location }) {
       })
         .then((r) => r.json())
         .then((r) => {
-          if (r.mapImageUrl) { setMapImageUrl(r.mapImageUrl); setThumbState("done"); }
-          else setThumbState("error");
+          if (r.mapImageUrl && r.bounds) {
+            const [lonMin, latMin, lonMax, latMax] = r.bounds;
+            setOverlayUrl(r.mapImageUrl);
+            // Leaflet bounds: [[lat_min, lon_min], [lat_max, lon_max]]
+            setOverlayBounds([[latMin, lonMin], [latMax, lonMax]]);
+            setThumbState("done");
+          } else {
+            setThumbState("error");
+          }
         })
         .catch(() => setThumbState("error"));
     } catch {
@@ -181,6 +187,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
 
   return (
     <div className="space-y-6">
+
       {/* Controls */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -246,7 +253,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
         </div>
       )}
 
-      {/* Data spec table — collapsed by default */}
+      {/* Data spec table */}
       <div className="rounded-lg border border-[var(--border)] bg-surface overflow-hidden">
         <button
           onClick={() => setSpecsOpen((o) => !o)}
@@ -265,11 +272,11 @@ export function CoastlineModule({ loc }: { loc: Location }) {
               {[
                 ["Sensor",        "Sentinel-2 MSI (ESA Copernicus)"],
                 ["Bands",         "B3 Green + B8 NIR — NDWI water index"],
-                ["Cloud filter",  "< 20% cloud cover per scene"],
-                ["Baseline",      "2019 (annual median composite, ~80 scenes)"],
-                ["Current",       "2024 (annual median composite, ~85 scenes)"],
+                ["Cloud filter",  "< 10% cloud cover per scene"],
+                ["Baseline",      "2019 (annual median composite)"],
+                ["Current",       "2024 (annual median composite)"],
                 ["Resolution",    "30 m analysis scale"],
-                ["Water index",   "NDWI > 0 = water, ≤ 0 = land"],
+                ["Water index",   "NDWI > 0.1 = water, ≤ 0.1 = land"],
                 ["Platform",      "Google Earth Engine"],
                 ["Territory",     `${loc.name} · ${loc.coords}`],
                 ["EEZ",           loc.eez],
@@ -286,7 +293,83 @@ export function CoastlineModule({ loc }: { loc: Location }) {
         )}
       </div>
 
-      {/* Analysis running — step indicator */}
+      {/* Interactive satellite map — always visible */}
+      <div className="rounded-lg border border-[var(--border)] bg-surface overflow-hidden">
+        <div className="px-5 py-3 border-b border-[var(--border)] flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)]">
+              Sentinel-2 Coastal Change Map
+            </span>
+            {thumbState === "done" && (
+              <div className="flex items-center gap-4 font-mono text-xs tracking-[0.1em] uppercase">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-[#E05B4B]" />
+                  <span className="text-[var(--text-dim)]">Erosion</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-[#4CB9C0]" />
+                  <span className="text-[var(--text-dim)]">Accretion</span>
+                </span>
+              </div>
+            )}
+          </div>
+          <span className="font-mono text-[0.65rem] tracking-[0.06em] uppercase text-[var(--text-dim)]">
+            Scroll to zoom · Drag to pan
+          </span>
+        </div>
+
+        {/* Map container — Leaflet renders here */}
+        <div className="relative">
+          <CoastlineMap
+            center={mapCenter}
+            zoom={mapZoom}
+            overlayUrl={overlayUrl}
+            overlayBounds={overlayBounds}
+          />
+
+          {/* Overlay loading indicator */}
+          {thumbState === "loading" && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000]
+                            bg-ocean/85 backdrop-blur-sm rounded px-4 py-2 flex items-center gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse" />
+              <span className="font-mono text-xs tracking-[0.14em] uppercase text-teal">
+                Rendering change overlay…
+              </span>
+            </div>
+          )}
+
+          {/* Pre-analysis hint */}
+          {state.status === "idle" && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000]
+                            bg-ocean/80 backdrop-blur-sm rounded px-4 py-2">
+              <span className="font-mono text-xs tracking-[0.1em] uppercase text-[var(--text-dim)]">
+                Run Analysis to overlay coastal change data
+              </span>
+            </div>
+          )}
+
+          {/* Change overlay error */}
+          {thumbState === "error" && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000]
+                            bg-ocean/85 rounded px-4 py-2">
+              <span className="font-mono text-xs tracking-[0.1em] uppercase text-coral">
+                Change overlay failed — metrics below are unaffected
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 py-2 border-t border-[var(--border)] flex items-center justify-between">
+          <span className="font-mono text-[0.65rem] tracking-[0.08em] uppercase text-[var(--text-dim)]">
+            Sentinel-2 MSI · NDWI · 30 m · Google Earth Engine · 2019–2024
+          </span>
+          <span className="font-mono text-[0.65rem] tracking-[0.08em] uppercase text-[var(--text-dim)]">
+            SW {sw} · NE {ne}
+          </span>
+        </div>
+      </div>
+
+      {/* Analysis running indicator */}
       {state.status === "running" && (
         <div className="rounded-lg border border-teal/20 bg-teal/5 px-6 py-8">
           <div className="font-mono text-xs tracking-[0.2em] uppercase text-teal mb-6 text-center">
@@ -324,101 +407,14 @@ export function CoastlineModule({ loc }: { loc: Location }) {
         </div>
       )}
 
-      {/* Results */}
+      {/* Metrics + interpretation */}
       {state.status === "done" && (
         <div className="space-y-4">
-
-          {/* Satellite change map — first and prominent */}
-          {thumbState !== "idle" && (
-            <>
-              {fullscreen && mapImageUrl && (
-                <FullscreenMap
-                  url={mapImageUrl}
-                  alt={`${loc.name} coastline change`}
-                  onClose={() => setFullscreen(false)}
-                />
-              )}
-              <div className="rounded-lg border border-[var(--border)] bg-surface overflow-hidden">
-                <div className="px-5 py-3 border-b border-[var(--border)] flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <span className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)]">
-                      Sentinel-2 Coastal Change Map
-                    </span>
-                    <div className="flex items-center gap-4 font-mono text-xs tracking-[0.1em] uppercase">
-                      <span className="flex items-center gap-1.5">
-                        <span className="inline-block w-2 h-2 rounded-full bg-[#E05B4B]" />
-                        <span className="text-[var(--text-dim)]">Erosion</span>
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="inline-block w-2 h-2 rounded-full bg-[#4CB9C0]" />
-                        <span className="text-[var(--text-dim)]">Accretion</span>
-                      </span>
-                    </div>
-                  </div>
-                  {mapImageUrl && (
-                    <button
-                      onClick={() => setFullscreen(true)}
-                      className="font-mono text-xs tracking-[0.1em] uppercase
-                                 px-2.5 py-1 rounded border border-[var(--border)]
-                                 text-[var(--text-dim)] hover:border-teal hover:text-teal transition-colors"
-                    >
-                      Fullscreen
-                    </button>
-                  )}
-                </div>
-
-                {thumbState === "loading" && (
-                  <div className="min-h-[420px] flex flex-col items-center justify-center gap-3
-                                  bg-[#0D1B2A]">
-                    <div className="font-mono text-xs tracking-[0.2em] uppercase text-teal">
-                      Rendering Change Map
-                    </div>
-                    <div className="font-sans text-sm text-[var(--text-dim)]">
-                      Computing Sentinel-2 pixel data…
-                    </div>
-                    <div className="mt-2 w-40 h-0.5 bg-surface2 rounded overflow-hidden">
-                      <div className="h-full bg-teal rounded w-1/2" style={{ animation: "pulse 1.5s ease-in-out infinite" }} />
-                    </div>
-                  </div>
-                )}
-
-                {thumbState === "done" && mapImageUrl && (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={mapImageUrl}
-                    alt={`${loc.name} coastline change`}
-                    className="w-full block cursor-zoom-in"
-                    style={{ minHeight: "320px", objectFit: "cover" }}
-                    onClick={() => setFullscreen(true)}
-                  />
-                )}
-
-                {thumbState === "error" && (
-                  <div className="min-h-[200px] flex items-center justify-center
-                                  font-sans text-sm text-[var(--text-dim)]">
-                    Map rendering failed — metrics below are unaffected.
-                  </div>
-                )}
-
-                <div className="px-5 py-2 border-t border-[var(--border)] flex items-center justify-between">
-                  <span className="font-mono text-[0.65rem] tracking-[0.08em] uppercase text-[var(--text-dim)]">
-                    Sentinel-2 MSI · NDWI · 30 m · Google Earth Engine · {state.data.period_start}–{state.data.period_end}
-                  </span>
-                  <span className="font-mono text-[0.65rem] tracking-[0.08em] uppercase text-[var(--text-dim)]">
-                    SW {sw} · NE {ne}
-                  </span>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Metrics */}
           <div className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)]">
             Results · Baseline {state.data.period_start} · Current {state.data.period_end}
           </div>
           <MetricCards data={state.data} />
 
-          {/* Interpretation + share row */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2 rounded-lg border border-[var(--border)] bg-surface p-5"
                  style={{ borderLeftColor: "rgba(76,185,192,0.45)", borderLeftWidth: "2px" }}>
@@ -448,19 +444,6 @@ export function CoastlineModule({ loc }: { loc: Location }) {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Idle */}
-      {state.status === "idle" && (
-        <div className="rounded-lg border border-[var(--border)] bg-surface/50 px-6 py-10 text-center">
-          <div className="font-mono text-xs tracking-[0.2em] uppercase text-[var(--text-dim)] mb-2">
-            Ready to Analyse
-          </div>
-          <p className="font-sans text-sm text-[var(--text-dim)] max-w-sm mx-auto">
-            Click "Run Analysis" to query the Sentinel-2 optical archive via
-            Google Earth Engine and compute shoreline change metrics.
-          </p>
         </div>
       )}
     </div>

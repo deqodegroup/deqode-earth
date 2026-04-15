@@ -1,10 +1,11 @@
 """
-DEQODE EARTH — Sentinel-2 coastal change map thumbnail
+DEQODE EARTH — Sentinel-2 coastal change overlay
 Python serverless (Vercel).
 
-Base layer: true-color Sentinel-2 RGB (B4/B3/B2) — photorealistic satellite view.
-Overlays:   erosion (coral #E05B4B) and accretion (teal #4CB9C0) from NDWI change.
-Method:     sampleRectangle().getInfo() — same gRPC path as analyse.py, no permission issues.
+Returns a transparent RGBA PNG with ONLY erosion/accretion pixels coloured.
+The satellite base layer is handled by Leaflet (Esri World Imagery tiles) on the frontend.
+
+Method: sampleRectangle().getInfo() — same gRPC path as analyse.py, no permission issues.
 """
 from http.server import BaseHTTPRequestHandler
 import ee
@@ -33,12 +34,17 @@ BASELINE_END   = "2019-12-31"
 CURRENT_START  = "2024-01-01"
 CURRENT_END    = "2024-12-31"
 
-# 400px raw sample — keeps all bboxes under sampleRectangle ~262k pixel limit.
-# Fiji (largest): 400x350 = 140,000px.
+# 400px raw sample width.
+# Fiji (largest bbox, 0.8° x 0.7°) → 400x350 = 140k px — under the 262k limit.
 RAW_W = 400
 OUT_W = 800
 
+# RGBA colours for change pixels
+EROSION_RGBA   = (224, 91,  75,  220)  # #E05B4B
+ACCRETION_RGBA = (76,  185, 192, 220)  # #4CB9C0
+
 _initialised = False
+
 
 def init_gee():
     global _initialised
@@ -53,7 +59,8 @@ def init_gee():
     _initialised = True
 
 
-def generate_thumb(slug: str) -> str:
+def generate_overlay(slug: str):
+    """Returns (data_uri: str, bounds: list)"""
     loc = LOCATIONS.get(slug)
     if not loc:
         raise ValueError(f"Unknown slug: {slug}")
@@ -66,17 +73,6 @@ def generate_thumb(slug: str) -> str:
     lat_range = lat_max - lat_min
     scale_m = max(30, (lon_range / RAW_W) * 111320)
 
-    # --- True-colour base (B4=Red, B3=Green, B2=Blue) ---
-    # This is the photorealistic "from orbit" satellite view.
-    true_color = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-        .filterBounds(aoi)
-        .filterDate(CURRENT_START, CURRENT_END)
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 10))
-        .select(["B4", "B3", "B2"])
-        .median()
-        .visualize(**{"min": 200, "max": 3000, "gamma": 1.4}))
-
-    # --- NDWI change detection ---
     def ndwi_composite(start, end):
         return (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
             .filterBounds(aoi)
@@ -90,57 +86,59 @@ def generate_thumb(slug: str) -> str:
     baseline = ndwi_composite(BASELINE_START, BASELINE_END)
     current  = ndwi_composite(CURRENT_START,  CURRENT_END)
 
-    # 0.1 threshold — removes ambiguous mixed/shore pixels that cause speckle
-    water_b      = baseline.gt(0.1)
-    water_c      = current.gt(0.1)
+    # 0.1 threshold removes ambiguous mixed/shoreline pixels
+    water_b = baseline.gt(0.1)
+    water_c = current.gt(0.1)
+
     erosion_mask = water_b.eq(0).And(water_c.eq(1))
     accrtn_mask  = water_b.eq(1).And(water_c.eq(0))
 
-    # Neighbourhood filter — drop isolated single pixels (speckle)
+    # Neighbourhood filter — drop isolated speckle (require ≥2 agreeing neighbours)
     kernel = ee.Kernel.square(radius=1)
     erosion_mask = (erosion_mask
         .reduceNeighborhood(reducer=ee.Reducer.sum(), kernel=kernel)
-        .gte(2).selfMask())
-    accrtn_mask = (accrtn_mask
+        .gte(2))
+    accrtn_mask  = (accrtn_mask
         .reduceNeighborhood(reducer=ee.Reducer.sum(), kernel=kernel)
-        .gte(2).selfMask())
+        .gte(2))
 
-    erosion_viz = erosion_mask.visualize(**{"palette": ["#E05B4B"]})
-    accrtn_viz  = accrtn_mask.visualize(**{"palette": ["#4CB9C0"]})
-
-    # Mosaic: real satellite image as base, change overlays on top
-    mosaic = ee.ImageCollection([true_color, erosion_viz, accrtn_viz]).mosaic()
-
-    # Reproject to target resolution, then sample pixels via gRPC
-    mosaic_proj = mosaic.reproject(crs="EPSG:4326", scale=scale_m)
-    rect = mosaic_proj.sampleRectangle(region=aoi, defaultValue=0).getInfo()
+    # Sample both binary bands in one call
+    change_bands = (erosion_mask.rename("erosion")
+                    .addBands(accrtn_mask.rename("accretion")))
+    change_proj  = change_bands.reproject(crs="EPSG:4326", scale=scale_m)
+    rect = change_proj.sampleRectangle(region=aoi, defaultValue=0).getInfo()
     props = rect["properties"]
 
-    r_rows = props["vis-red"]
-    g_rows = props["vis-green"]
-    b_rows = props["vis-blue"]
+    erosion_rows = props["erosion"]
+    accrtn_rows  = props["accretion"]
 
-    h = len(r_rows)
-    w = len(r_rows[0]) if h > 0 else 1
+    h = len(erosion_rows)
+    w = len(erosion_rows[0]) if h > 0 else 1
 
-    r_flat = bytes([min(255, max(0, int(v))) for row in r_rows for v in row])
-    g_flat = bytes([min(255, max(0, int(v))) for row in g_rows for v in row])
-    b_flat = bytes([min(255, max(0, int(v))) for row in b_rows for v in row])
+    e_flat = [int(v) for row in erosion_rows for v in row]
+    a_flat = [int(v) for row in accrtn_rows  for v in row]
 
-    rgb = bytearray(w * h * 3)
-    rgb[0::3] = r_flat
-    rgb[1::3] = g_flat
-    rgb[2::3] = b_flat
+    # Build RGBA: transparent background, coloured only where change detected
+    rgba = bytearray(w * h * 4)  # all zeros = transparent
+    for i, (e, a) in enumerate(zip(e_flat, a_flat)):
+        idx = i * 4
+        if e:
+            rgba[idx], rgba[idx+1], rgba[idx+2], rgba[idx+3] = EROSION_RGBA
+        elif a:
+            rgba[idx], rgba[idx+1], rgba[idx+2], rgba[idx+3] = ACCRETION_RGBA
 
-    img = Image.frombytes("RGB", (w, h), bytes(rgb))
+    img = Image.frombytes("RGBA", (w, h), bytes(rgba))
 
+    # Upscale — NEAREST preserves crisp hard edges on sparse categorical overlay
     new_h = max(1, round(h * OUT_W / w))
-    img = img.resize((OUT_W, new_h), Image.LANCZOS)
+    img = img.resize((OUT_W, new_h), Image.NEAREST)
 
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     b64_img = base64.b64encode(buf.getvalue()).decode()
-    return f"data:image/png;base64,{b64_img}"
+    data_uri = f"data:image/png;base64,{b64_img}"
+
+    return data_uri, bbox
 
 
 class handler(BaseHTTPRequestHandler):
@@ -157,8 +155,8 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             init_gee()
-            data_url = generate_thumb(slug)
-            self._send(200, {"mapImageUrl": data_url})
+            data_uri, bounds = generate_overlay(slug)
+            self._send(200, {"mapImageUrl": data_uri, "bounds": bounds})
 
         except ValueError as e:
             self._send(400, {"error": str(e)})
