@@ -1,8 +1,6 @@
 import ee from "@google/earthengine";
 import { type Location } from "@/lib/locations";
 import { type CoastlineMetrics } from "@/components/modules/coastline/MetricCards";
-import { computeValue } from "./compute";
-
 // Sentinel-2 SR — confirmed coverage across all 8 Pacific SIDS
 // Sentinel-1 SAR has ZERO coverage over Niue, Tuvalu, Kiribati, Marshall Islands
 const BASELINE_START = "2019-01-01";
