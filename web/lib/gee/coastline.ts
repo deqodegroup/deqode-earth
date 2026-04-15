@@ -13,25 +13,21 @@ function buildRegionAndCollections(loc: Location): { region: any; baselineCompos
   const region = ee.Geometry.Rectangle([lonMin, latMin, lonMax, latMax]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function buildCollection(start: string, end: string): any {
+  function buildComposite(start: string, end: string): any {
     return ee.ImageCollection("COPERNICUS/S1_GRD")
       .filterBounds(region)
       .filterDate(start, end)
       .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
-      .select("VV");
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function safeComposite(col: any): any {
-    return ee.Image(
-      ee.Algorithms.If(col.size().gt(0), col.mean(), ee.Image.constant(-30).rename("VV"))
-    ).clip(region);
+      .select("VV")
+      .limit(20)   // cap images to keep GEE compute fast
+      .mean()
+      .clip(region);
   }
 
   return {
     region,
-    baselineComposite: safeComposite(buildCollection(BASELINE_START, BASELINE_END)),
-    currentComposite:  safeComposite(buildCollection(CURRENT_START,  CURRENT_END)),
+    baselineComposite: buildComposite(BASELINE_START, BASELINE_END),
+    currentComposite:  buildComposite(CURRENT_START,  CURRENT_END),
   };
 }
 
