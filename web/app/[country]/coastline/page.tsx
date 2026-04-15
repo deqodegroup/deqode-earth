@@ -57,7 +57,7 @@ export default async function CoastlinePage({ params }: Props) {
               </h1>
             </div>
             <p className="font-sans text-sm text-[var(--text-mid)] max-w-lg leading-relaxed">
-              SAR-derived shoreline change analysis using Sentinel-1 backscatter
+              Sentinel-2 optical shoreline change analysis using NDWI water index
               composites. Quantifies erosion, accretion, and net coastal displacement
               over multi-year periods.
             </p>
