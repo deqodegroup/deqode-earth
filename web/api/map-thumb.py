@@ -81,7 +81,7 @@ def generate_thumb(slug: str) -> str:
         return (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
             .filterBounds(aoi)
             .filterDate(start, end)
-            .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
+            .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 10))
             .select(["B3", "B8"])
             .median()
             .normalizedDifference(["B3", "B8"])
@@ -90,17 +90,25 @@ def generate_thumb(slug: str) -> str:
     baseline = ndwi_composite(BASELINE_START, BASELINE_END)
     current  = ndwi_composite(CURRENT_START,  CURRENT_END)
 
-    water_b      = baseline.gt(0)
-    water_c      = current.gt(0)
+    # Threshold 0.1 (not 0) removes ambiguous mixed pixels at the land/water edge
+    water_b      = baseline.gt(0.1)
+    water_c      = current.gt(0.1)
     erosion_mask = water_b.eq(0).And(water_c.eq(1))
     accrtn_mask  = water_b.eq(1).And(water_c.eq(0))
     stable_mask  = water_b.eq(0).And(water_c.eq(0))
 
+    # Remove isolated single-pixel speckle — only keep change where neighbours agree
+    kernel = ee.Kernel.square(radius=1)
+    erosion_mask = erosion_mask.reduceNeighborhood(
+        reducer=ee.Reducer.sum(), kernel=kernel).gte(2).selfMask()
+    accrtn_mask  = accrtn_mask.reduceNeighborhood(
+        reducer=ee.Reducer.sum(), kernel=kernel).gte(2).selfMask()
+
     # Build visualised mosaic (outputs vis-red, vis-green, vis-blue uint8 bands)
     base_img    = ee.Image(0).visualize(**{"palette": ["#0D1B2A"]})
     stable_viz  = stable_mask.selfMask().visualize(**{"palette": ["#1e3a5f"]})
-    erosion_viz = erosion_mask.selfMask().visualize(**{"palette": ["#E05B4B"]})
-    accrtn_viz  = accrtn_mask.selfMask().visualize(**{"palette": ["#4CB9C0"]})
+    erosion_viz = erosion_mask.visualize(**{"palette": ["#E05B4B"]})
+    accrtn_viz  = accrtn_mask.visualize(**{"palette": ["#4CB9C0"]})
 
     mosaic = ee.ImageCollection([base_img, stable_viz, erosion_viz, accrtn_viz]).mosaic()
 
