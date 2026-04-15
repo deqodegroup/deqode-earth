@@ -1,9 +1,17 @@
 """
 DEQODE EARTH — Sentinel-2 coastal change map thumbnail
-Python serverless (Vercel) — uses ee.data.computePixels (gRPC, same path as evaluate()).
-getThumbURL uses REST /thumbnails API which returns 403 on non-commercial GEE projects.
-computePixels uses the same gRPC compute endpoint as reduceRegion — no permission issues.
-Returns base64 data URI in JSON so no /api/map-image proxy is needed.
+Python serverless (Vercel).
+
+Uses sampleRectangle().getInfo() — same gRPC path as reduceRegion().evaluate() in analyse.py.
+getThumbURL  → 403 (REST /thumbnails, blocked on non-commercial GEE)
+computePixels → 500 (unknown serialiser issue)
+sampleRectangle → gRPC, proven working path
+
+Steps:
+1. Build NDWI change mosaic (visualized RGB)
+2. Reproject to target scale so sampleRectangle returns ~300 px wide raw image
+3. Reconstruct RGB via Pillow, upscale to 800px, encode as base64 PNG
+4. Return data:image/png;base64,... in JSON
 """
 from http.server import BaseHTTPRequestHandler
 import ee
@@ -12,6 +20,9 @@ import os
 import base64
 import sys
 import traceback
+import io
+
+from PIL import Image
 
 LOCATIONS = {
     "niue":             {"bbox": [-169.9647, -19.155, -169.78, -18.955]},
@@ -29,6 +40,12 @@ BASELINE_END   = "2019-12-31"
 CURRENT_START  = "2024-01-01"
 CURRENT_END    = "2024-12-31"
 
+# Target raw sample width before upscaling.
+# sampleRectangle limit is ~262,144 pixels total.
+# 300px wide keeps all bboxes well under that limit.
+RAW_W = 300
+OUT_W = 800  # final output width
+
 _initialised = False
 
 def init_gee():
@@ -43,6 +60,7 @@ def init_gee():
     ee.Initialize(credentials, project="deqode-earth")
     _initialised = True
 
+
 def generate_thumb(slug: str) -> str:
     loc = LOCATIONS.get(slug)
     if not loc:
@@ -51,6 +69,13 @@ def generate_thumb(slug: str) -> str:
     bbox = loc["bbox"]
     lon_min, lat_min, lon_max, lat_max = bbox
     aoi = ee.Geometry.Rectangle(bbox)
+
+    lon_range = lon_max - lon_min
+    lat_range = lat_max - lat_min
+
+    # Scale in metres so that longitude spans ~RAW_W pixels.
+    # 111320 m ≈ 1° at equator.
+    scale_m = max(30, (lon_range / RAW_W) * 111320)
 
     def ndwi_composite(start, end):
         return (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
@@ -71,7 +96,7 @@ def generate_thumb(slug: str) -> str:
     accrtn_mask  = water_b.eq(1).And(water_c.eq(0))
     stable_mask  = water_b.eq(0).And(water_c.eq(0))
 
-    # Single-pass change map — dark ocean base + stable land + erosion + accretion
+    # Build visualised mosaic (outputs vis-red, vis-green, vis-blue uint8 bands)
     base_img    = ee.Image(0).visualize(**{"palette": ["#0D1B2A"]})
     stable_viz  = stable_mask.selfMask().visualize(**{"palette": ["#1e3a5f"]})
     erosion_viz = erosion_mask.selfMask().visualize(**{"palette": ["#E05B4B"]})
@@ -79,31 +104,40 @@ def generate_thumb(slug: str) -> str:
 
     mosaic = ee.ImageCollection([base_img, stable_viz, erosion_viz, accrtn_viz]).mosaic()
 
-    # computePixels: gRPC compute path — same permissions as reduceRegion/evaluate()
-    # Avoids /v1/projects/{proj}/thumbnails REST endpoint which returns 403 on non-commercial GEE
-    lon_range = lon_max - lon_min
-    lat_range = lat_max - lat_min
-    W = 800
-    H = max(1, round(W * lat_range / lon_range))
+    # Reproject to target scale so sampleRectangle returns a known pixel grid
+    mosaic_proj = mosaic.reproject(crs="EPSG:4326", scale=scale_m)
 
-    pixel_bytes = ee.data.computePixels({
-        "expression": ee.serializer.encode(mosaic, for_cloud_api=True),
-        "fileFormat": "PNG",
-        "grid": {
-            "dimensions":      {"width": W, "height": H},
-            "affineTransform": {
-                "scaleX":     lon_range / W,
-                "shearX":     0,
-                "translateX": lon_min,
-                "shearY":     0,
-                "scaleY":     -(lat_range / H),
-                "translateY": lat_max,
-            },
-            "crsCode": "EPSG:4326",
-        }
-    })
+    # sampleRectangle uses the same gRPC path as evaluate() — no permission issues
+    rect = mosaic_proj.sampleRectangle(region=aoi, defaultValue=0).getInfo()
+    props = rect["properties"]
 
-    b64_img = base64.b64encode(pixel_bytes).decode()
+    r_rows = props["vis-red"]    # list[list[int]]
+    g_rows = props["vis-green"]
+    b_rows = props["vis-blue"]
+
+    h = len(r_rows)
+    w = len(r_rows[0]) if h > 0 else 1
+
+    # Flatten rows → bytes (values are 0-255 from visualize())
+    r_flat = bytes([min(255, max(0, int(v))) for row in r_rows for v in row])
+    g_flat = bytes([min(255, max(0, int(v))) for row in g_rows for v in row])
+    b_flat = bytes([min(255, max(0, int(v))) for row in b_rows for v in row])
+
+    # Interleave into RGB
+    rgb = bytearray(w * h * 3)
+    rgb[0::3] = r_flat
+    rgb[1::3] = g_flat
+    rgb[2::3] = b_flat
+
+    img = Image.frombytes("RGB", (w, h), bytes(rgb))
+
+    # Upscale to OUT_W — NEAREST preserves hard categorical edges
+    new_h = max(1, round(h * OUT_W / w))
+    img = img.resize((OUT_W, new_h), Image.NEAREST)
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    b64_img = base64.b64encode(buf.getvalue()).decode()
     return f"data:image/png;base64,{b64_img}"
 
 
