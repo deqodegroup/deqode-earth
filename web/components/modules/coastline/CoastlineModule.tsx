@@ -31,7 +31,7 @@ function FullscreenMap({ url, alt, onClose }: { url: string; alt: string; onClos
 
 const ANALYSIS_STEPS = [
   "Connecting",
-  "Fetching SAR data",
+  "Fetching Sentinel-2",
   "Computing changes",
   "Generating results",
 ];
@@ -188,7 +188,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
             Analysis Window
           </div>
           <div className="font-sans text-sm text-[var(--text-mid)]">
-            2019–2021 baseline · 2023–2025 current · Sentinel-1 SAR · 10 m
+            2019–2020 baseline · 2023–2025 current · Sentinel-2 optical · 30 m
           </div>
         </div>
 
@@ -263,13 +263,13 @@ export function CoastlineModule({ loc }: { loc: Location }) {
           <table className="w-full text-sm border-t border-[var(--border)]">
             <tbody>
               {[
-                ["Sensor",        "Sentinel-1 SAR (ESA Copernicus)"],
-                ["Band",          "VV polarisation — IW mode"],
-                ["Orbits",        "Ascending + Descending"],
-                ["Baseline",      "2019 – 2021 (3-year median composite)"],
-                ["Current",       "2023 – 2025 (3-year median composite)"],
-                ["Resolution",    "10 m native"],
-                ["Threshold",     "−15 dB land/water boundary"],
+                ["Sensor",        "Sentinel-2 MSI (ESA Copernicus)"],
+                ["Bands",         "B3 Green + B8 NIR — NDWI water index"],
+                ["Cloud filter",  "< 20% cloud cover per scene"],
+                ["Baseline",      "2019 – 2020 (2-year median composite)"],
+                ["Current",       "2023 – 2025 (2-year median composite)"],
+                ["Resolution",    "30 m analysis scale"],
+                ["Water index",   "NDWI > 0 = water, ≤ 0 = land"],
                 ["Platform",      "Google Earth Engine"],
                 ["Territory",     `${loc.name} · ${loc.coords}`],
                 ["EEZ",           loc.eez],
@@ -365,7 +365,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
               <div className="rounded-lg border border-[var(--border)] bg-surface overflow-hidden">
                 <div className="px-5 py-3 border-b border-[var(--border)] flex items-center justify-between">
                   <span className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)]">
-                    Sentinel-1 SAR Change Map
+                    Sentinel-2 Coastal Change Map
                   </span>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-4 font-mono text-xs tracking-[0.1em] uppercase">
@@ -394,7 +394,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
                 {thumbState === "loading" && (
                   <div className="px-6 py-10 text-center">
                     <div className="font-mono text-xs tracking-[0.2em] uppercase text-teal mb-2">
-                      Rendering SAR Map
+                      Rendering Change Map
                     </div>
                     <div className="font-sans text-sm text-[var(--text-dim)]">
                       Generating satellite change image…
@@ -423,7 +423,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
 
                 <div className="px-5 py-2 border-t border-[var(--border)]">
                   <span className="font-mono text-[0.65rem] tracking-[0.08em] uppercase text-[var(--text-dim)]">
-                    Sentinel-1 GRD · VV polarisation · 10 m resolution · Google Earth Engine
+                    Sentinel-2 MSI · NDWI water index · 30 m resolution · Google Earth Engine
                   </span>
                 </div>
               </div>
@@ -450,7 +450,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
             Ready to Analyse
           </div>
           <p className="font-sans text-sm text-[var(--text-dim)] max-w-sm mx-auto">
-            Click "Run Analysis" to query the Sentinel-1 SAR archive via
+            Click "Run Analysis" to query the Sentinel-2 optical archive via
             Google Earth Engine and compute shoreline change metrics.
           </p>
         </div>

@@ -2,62 +2,62 @@ import ee from "@google/earthengine";
 import { type Location } from "@/lib/locations";
 import { type CoastlineMetrics } from "@/components/modules/coastline/MetricCards";
 
-const BASELINE_START = "2020-01-01";
-const BASELINE_END   = "2020-12-31";
-const CURRENT_START  = "2025-01-01";
-const CURRENT_END    = "2025-12-31";
+// Sentinel-2 SR — confirmed coverage across all 8 Pacific SIDS
+// Sentinel-1 SAR has ZERO coverage over Niue, Tuvalu, Kiribati, Marshall Islands
+const BASELINE_START = "2019-01-01";
+const BASELINE_END   = "2020-12-31";  // 2-year median for stable cloud-free composite
+const CURRENT_START  = "2023-01-01";
+const CURRENT_END    = "2025-03-31";  // 2-year current
+
+const SCALE       = 30;               // 30m — fast, accurate for island-scale change
+const PIXEL_AREA  = SCALE * SCALE;    // m² per pixel (hardcoded avoids ee.Image.pixelArea() overhead)
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildRegionAndCollections(loc: Location): { region: any; baselineComposite: any; currentComposite: any } {
+function buildRegionAndComposites(loc: Location): { region: any; baseline: any; current: any } {
   const [lonMin, latMin, lonMax, latMax] = loc.bbox;
   const region = ee.Geometry.Rectangle([lonMin, latMin, lonMax, latMax]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function buildComposite(start: string, end: string): any {
-    return ee.ImageCollection("COPERNICUS/S1_GRD")
+  function ndwiComposite(start: string, end: string): any {
+    return ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
       .filterBounds(region)
       .filterDate(start, end)
-      .filter(ee.Filter.eq("instrumentMode", "IW"))
-      .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
-      .filter(ee.Filter.eq("orbitProperties_pass", "DESCENDING"))
-      .select("VV")
-      .mean()
-      .clip(region);
+      .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
+      .map((img: any) => img.normalizedDifference(["B3", "B8"]).rename("ndwi"))  // eslint-disable-line @typescript-eslint/no-explicit-any
+      .median();
   }
 
   return {
     region,
-    baselineComposite: buildComposite(BASELINE_START, BASELINE_END),
-    currentComposite:  buildComposite(CURRENT_START,  CURRENT_END),
+    baseline: ndwiComposite(BASELINE_START, BASELINE_END),
+    current:  ndwiComposite(CURRENT_START,  CURRENT_END),
   };
 }
 
 /**
- * Returns erosion / accretion / stable metrics via 3 parallel GEE reduceRegion calls.
- * Matches the Streamlit Python logic: lt(-15) water mask, pixelArea() multiplication.
+ * Coastal change via Sentinel-2 NDWI.
+ * NDWI = (Green B3 - NIR B8) / (Green B3 + NIR B8)
+ * > 0 = water,  ≤ 0 = land
+ * Single multiband reduceRegion — one GEE round-trip.
  */
 export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics> {
-  const { region, baselineComposite, currentComposite } = buildRegionAndCollections(loc);
+  const { region, baseline, current } = buildRegionAndComposites(loc);
 
-  // Water mask: VV < -15 dB = water (matches Streamlit logic exactly)
-  const waterBaseline = baselineComposite.lt(-15);
-  const waterCurrent  = currentComposite.lt(-15);
+  const waterBaseline = baseline.gt(0);  // NDWI > 0 = water
+  const waterCurrent  = current.gt(0);
 
-  // Binary masks — no pixelArea() in the GEE graph, keeps compute graph minimal
+  // Land→water = erosion | water→land = accretion | land→land = stable
   const erosionMask   = waterBaseline.eq(0).and(waterCurrent.eq(1)).rename("erosion");
   const accretionMask = waterBaseline.eq(1).and(waterCurrent.eq(0)).rename("accretion");
   const stableMask    = waterBaseline.eq(0).and(waterCurrent.eq(0)).rename("stable");
 
-  // Single multiband reduceRegion — one GEE round-trip, composites computed once
-  // scale=100m uses GEE's 100m pyramid (~37k pixels for Niue) — completes in seconds
-  const PIXEL_AREA_M2 = 100 * 100; // 100m × 100m per pixel
   const counts = await new Promise<{ erosion: number; accretion: number; stable: number }>(
     (resolve, reject) => {
       erosionMask.addBands(accretionMask).addBands(stableMask)
         .reduceRegion({
           reducer: ee.Reducer.sum(),
           geometry: region,
-          scale: 100,
+          scale:     SCALE,
           maxPixels: 1e9,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }).evaluate((result: any, err: any) => {
@@ -71,17 +71,16 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
     }
   );
 
-  const [lonMin, , lonMax, latMax] = loc.bbox;
-  const latMin = loc.bbox[1];
-  const erosion_m2   = counts.erosion   * PIXEL_AREA_M2;
-  const accretion_m2 = counts.accretion * PIXEL_AREA_M2;
-  const totalM2      = (counts.erosion + counts.accretion + counts.stable) * PIXEL_AREA_M2;
+  const [lonMin, latMin, lonMax, latMax] = loc.bbox;
+  const erosion_m2   = counts.erosion   * PIXEL_AREA;
+  const accretion_m2 = counts.accretion * PIXEL_AREA;
+  const totalM2      = (counts.erosion + counts.accretion + counts.stable) * PIXEL_AREA;
 
   const coastLengthM = Math.sqrt((lonMax - lonMin) ** 2 + (latMax - latMin) ** 2) * 111_000;
-  const erosion_m    = erosion_m2  / Math.max(coastLengthM, 1);
+  const erosion_m    = erosion_m2   / Math.max(coastLengthM, 1);
   const accretion_m  = accretion_m2 / Math.max(coastLengthM, 1);
-  const net_change_m = accretion_m - erosion_m;
-  const stable_pct   = totalM2 > 0 ? ((counts.stable * PIXEL_AREA_M2) / totalM2) * 100 : 0;
+  const net_change_m = accretion_m  - erosion_m;
+  const stable_pct   = totalM2 > 0 ? ((counts.stable * PIXEL_AREA) / totalM2) * 100 : 0;
 
   return {
     erosion_m:    Math.round(erosion_m    * 10) / 10,
@@ -90,28 +89,35 @@ export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics>
     stable_pct:   Math.round(stable_pct   * 10) / 10,
     erosion_m2:   Math.round(erosion_m2),
     accretion_m2: Math.round(accretion_m2),
-    period_start: "2020",
+    period_start: "2019",
     period_end:   "2025",
-    mapImageUrl:  "",  // loaded separately via /api/map-thumb
+    mapImageUrl:  "",
   };
 }
 
 /**
- * Generates the false-colour thumbnail URL (SAR grey + red/teal overlay).
- * Called separately from the metrics to avoid timeout on Hobby plan.
+ * False-colour change map — true-colour Sentinel-2 base + red erosion + teal accretion overlay.
  */
 export async function generateMapThumb(loc: Location): Promise<string> {
-  const { region, baselineComposite, currentComposite } = buildRegionAndCollections(loc);
+  const { region, baseline, current } = buildRegionAndComposites(loc);
 
-  const waterBaseline = baselineComposite.lt(-15);
-  const waterCurrent  = currentComposite.lt(-15);
-  const erosionMask   = waterBaseline.eq(0).and(waterCurrent.eq(1));  // was land, now water
-  const accretionMask = waterBaseline.eq(1).and(waterCurrent.eq(0));  // was water, now land
+  const waterBaseline = baseline.gt(0);
+  const waterCurrent  = current.gt(0);
+  const erosionMask   = waterBaseline.eq(0).and(waterCurrent.eq(1));
+  const accretionMask = waterBaseline.eq(1).and(waterCurrent.eq(0));
 
-  const sarViz       = currentComposite.visualize({ bands: ["VV"], min: -25, max: 0, palette: ["#0D1B2A", "#2a4a6b", "#7ab3c8"] });
+  // True-colour RGB base from Sentinel-2 current composite
+  const s2Current = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+    .filterBounds(region)
+    .filterDate(CURRENT_START, CURRENT_END)
+    .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
+    .median()
+    .select(["B4", "B3", "B2"]);  // RGB
+
+  const baseViz      = s2Current.visualize({ bands: ["B4", "B3", "B2"], min: 0, max: 3000 });
   const erosionViz   = erosionMask.selfMask().visualize({ palette: ["#E05B4B"] });
   const accretionViz = accretionMask.selfMask().visualize({ palette: ["#4CB9C0"] });
-  const mapImage     = ee.ImageCollection([sarViz, erosionViz, accretionViz]).mosaic();
+  const mapImage     = ee.ImageCollection([baseViz, erosionViz, accretionViz]).mosaic();
 
   return new Promise((resolve, reject) => {
     mapImage.getThumbURL(
