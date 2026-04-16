@@ -107,6 +107,47 @@ html, body {
 
 .module-card-active:hover { box-shadow: 0 0 28px rgba(76,185,192,0.2); }
 
+/* ─── Leaflet dark theme overrides ───────────────────── */
+
+/* Zoom control buttons */
+.leaflet-control-zoom a {
+  background: rgba(13,27,42,0.92) !important;
+  border: 1px solid rgba(76,185,192,0.2) !important;
+  color: #8BA5BC !important;
+  font-size: 16px !important;
+  line-height: 28px !important;
+  width: 28px !important;
+  height: 28px !important;
+  backdrop-filter: blur(8px) !important;
+  transition: color 0.15s, border-color 0.15s !important;
+}
+.leaflet-control-zoom a:hover {
+  background: rgba(21,34,54,0.95) !important;
+  color: #4CB9C0 !important;
+  border-color: rgba(76,185,192,0.5) !important;
+}
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.4) !important;
+}
+.leaflet-control-zoom-in { border-radius: 6px 6px 0 0 !important; }
+.leaflet-control-zoom-out { border-radius: 0 0 6px 6px !important; }
+
+/* Attribution */
+.leaflet-control-attribution {
+  background: rgba(13,27,42,0.75) !important;
+  backdrop-filter: blur(6px) !important;
+  color: #4A6680 !important;
+  font-size: 10px !important;
+  border-radius: 4px 0 0 0 !important;
+  padding: 2px 6px !important;
+  border: none !important;
+}
+.leaflet-control-attribution a { color: #4CB9C0 !important; }
+
+/* Remove default tile border */
+.leaflet-container { background: #0D1B2A !important; }
+
 /* ─── Pending badge shimmer ───────────────────────────── */
 
 .badge-shimmer {

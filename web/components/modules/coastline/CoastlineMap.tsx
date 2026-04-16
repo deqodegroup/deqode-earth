@@ -3,10 +3,10 @@
 import { useEffect, useRef } from "react";
 
 interface CoastlineMapProps {
-  center: [number, number];          // [lat, lon]
+  center: [number, number];
   zoom: number;
-  overlayUrl?: string;               // transparent RGBA PNG data URI
-  overlayBounds?: [[number, number], [number, number]]; // [[lat_min, lon_min], [lat_max, lon_max]]
+  overlayUrl?: string;
+  overlayBounds?: [[number, number], [number, number]];
 }
 
 export function CoastlineMap({ center, zoom, overlayUrl, overlayBounds }: CoastlineMapProps) {
@@ -14,7 +14,6 @@ export function CoastlineMap({ center, zoom, overlayUrl, overlayBounds }: Coastl
   const mapRef       = useRef<any>(null);
   const overlayRef   = useRef<any>(null);
 
-  // Initialise map once on mount
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
@@ -26,25 +25,29 @@ export function CoastlineMap({ center, zoom, overlayUrl, overlayBounds }: Coastl
         center,
         zoom,
         scrollWheelZoom: true,
-        zoomControl: true,
-        attributionControl: true,
+        zoomControl: false,       // we render our own styled controls
+        attributionControl: false, // we render our own attribution
       });
 
       // Esri World Imagery — photorealistic satellite base
       L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        {
-          attribution: "Imagery &copy; <a href='https://www.esri.com'>Esri</a>",
-          maxZoom: 18,
-          minZoom: 6,
-        }
+        { maxZoom: 18, minZoom: 6 }
       ).addTo(map);
 
-      // Esri reference labels — place names, coastlines, ocean labels (Google Earth feel)
+      // Esri reference labels — place names, ocean labels, coastlines
       L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-        { maxZoom: 18, minZoom: 6, opacity: 0.85 }
+        { maxZoom: 18, minZoom: 6, opacity: 0.9 }
       ).addTo(map);
+
+      // Custom dark zoom control — bottom right, away from HUD badges
+      L.control.zoom({ position: "bottomright" }).addTo(map);
+
+      // Attribution bottom right, minimal
+      L.control.attribution({ position: "bottomright", prefix: false })
+        .addAttribution("Imagery © <a href='https://www.esri.com' style='color:#4CB9C0'>Esri</a>")
+        .addTo(map);
 
       mapRef.current = map;
     });
@@ -59,7 +62,6 @@ export function CoastlineMap({ center, zoom, overlayUrl, overlayBounds }: Coastl
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Add / replace overlay whenever the URL changes
   useEffect(() => {
     if (!overlayUrl || !overlayBounds || !mapRef.current) return;
 
@@ -78,5 +80,5 @@ export function CoastlineMap({ center, zoom, overlayUrl, overlayBounds }: Coastl
     });
   }, [overlayUrl, overlayBounds]);
 
-  return <div ref={containerRef} className="w-full" style={{ height: "560px" }} />;
+  return <div ref={containerRef} className="w-full" style={{ height: "70vh", minHeight: "520px", maxHeight: "800px" }} />;
 }
