@@ -188,70 +188,78 @@ export function CoastlineModule({ loc }: { loc: Location }) {
   return (
     <div className="space-y-6">
 
-      {/* Controls */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <div className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)] mb-1">
-            Analysis Window
+      {/* Command panel — mission brief + run control */}
+      <div className="rounded-lg border border-[var(--border)] bg-surface overflow-hidden">
+        <div className="flex items-center justify-between gap-6 px-5 py-4 flex-wrap">
+          {/* Mission parameters */}
+          <div className="flex items-center gap-6 flex-wrap">
+            {[
+              { label: "Baseline", value: "2019" },
+              { label: "Current",  value: "2024" },
+              { label: "Sensor",   value: "Sentinel-2" },
+              { label: "Scale",    value: "30 m" },
+              { label: "Index",    value: "NDWI" },
+            ].map(({ label, value }) => (
+              <div key={label}>
+                <div className="font-mono text-[0.55rem] tracking-[0.2em] uppercase text-[var(--text-dim)]">{label}</div>
+                <div className="font-mono text-sm text-[var(--text)]">{value}</div>
+              </div>
+            ))}
           </div>
-          <div className="font-sans text-sm text-[var(--text-mid)]">
-            2019 baseline · 2024 current · Sentinel-2 optical · 30 m
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {state.status === "done" && (
+              <>
+                <button
+                  onClick={() => downloadReport("txt")}
+                  className="font-mono text-[0.65rem] tracking-[0.1em] uppercase
+                             px-3 py-2 rounded border border-[var(--border)]
+                             text-[var(--text-dim)] hover:border-teal hover:text-teal transition-colors"
+                >
+                  TXT
+                </button>
+                <button
+                  onClick={() => downloadReport("pdf")}
+                  className="font-mono text-[0.65rem] tracking-[0.1em] uppercase
+                             px-3 py-2 rounded border border-gold/30
+                             text-gold hover:bg-gold/10 transition-colors"
+                >
+                  PDF
+                </button>
+              </>
+            )}
+            <button
+              onClick={runAnalysis}
+              disabled={state.status === "running"}
+              className="font-mono text-xs tracking-[0.12em] uppercase
+                         px-6 py-2.5 rounded bg-teal text-ocean font-semibold
+                         hover:bg-teal/90 disabled:opacity-50 disabled:cursor-not-allowed
+                         transition-colors animate-glow-teal"
+            >
+              {state.status === "running" ? "Analysing…" : state.status === "done" ? "Run Again" : "Run Analysis"}
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          {state.status === "done" && (
-            <>
-              <button
-                onClick={() => downloadReport("txt")}
-                className="font-mono text-xs tracking-[0.1em] uppercase
-                           px-4 py-2 rounded border border-[var(--border)]
-                           text-[var(--text-mid)] hover:border-teal hover:text-teal transition-colors"
-              >
-                Export TXT
-              </button>
-              <button
-                onClick={() => downloadReport("pdf")}
-                className="font-mono text-xs tracking-[0.1em] uppercase
-                           px-4 py-2 rounded border border-gold/30
-                           text-gold hover:bg-gold/10 transition-colors"
-              >
-                Export PDF
-              </button>
-            </>
-          )}
-
-          <button
-            onClick={runAnalysis}
-            disabled={state.status === "running"}
-            className="font-mono text-xs tracking-[0.1em] uppercase
-                       px-5 py-2.5 rounded bg-teal text-ocean font-medium
-                       hover:bg-teal/90 disabled:opacity-50 disabled:cursor-not-allowed
-                       transition-colors animate-glow-teal"
-          >
-            {state.status === "running" ? "Analysing…" : state.status === "done" ? "Run Again" : "Run Analysis"}
-          </button>
-        </div>
+        {/* Status bar */}
+        {state.status === "done" && lastRun !== null && (
+          <div className="flex items-center justify-between border-t border-[var(--border)] px-5 py-2 bg-surface2/40">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal" />
+              <span className="font-mono text-[0.6rem] tracking-[0.1em] uppercase text-[var(--text-dim)]">
+                Last analysed {daysAgo(lastRun)}
+              </span>
+            </div>
+            <button
+              onClick={copyShareLink}
+              className="font-mono text-[0.6rem] tracking-[0.1em] uppercase text-[var(--text-dim)] hover:text-teal transition-colors"
+            >
+              {copied ? "Copied!" : "Share"}
+            </button>
+          </div>
+        )}
       </div>
-
-      {/* Cached result banner */}
-      {state.status === "done" && lastRun !== null && (
-        <div className="flex items-center justify-between rounded border border-[var(--border)] bg-surface/50 px-4 py-2.5">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-teal" />
-            <span className="font-mono text-xs tracking-[0.08em] text-[var(--text-dim)]">
-              Last analysed {daysAgo(lastRun)}
-            </span>
-          </div>
-          <button
-            onClick={copyShareLink}
-            className="font-mono text-xs tracking-[0.08em] uppercase text-[var(--text-dim)]
-                       hover:text-teal transition-colors"
-          >
-            {copied ? "Copied!" : "Copy link"}
-          </button>
-        </div>
-      )}
 
       {/* Data spec table */}
       <div className="rounded-lg border border-[var(--border)] bg-surface overflow-hidden">
@@ -259,37 +267,34 @@ export function CoastlineModule({ loc }: { loc: Location }) {
           onClick={() => setSpecsOpen((o) => !o)}
           className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-surface2 transition-colors"
         >
-          <span className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)]">
+          <span className="font-mono text-[0.65rem] tracking-[0.14em] uppercase text-[var(--text-dim)]">
             Data Specifications
           </span>
-          <span className="font-mono text-xs text-[var(--text-dim)] select-none">
-            {specsOpen ? "▲" : "▼"}
-          </span>
+          <span className="font-mono text-xs text-[var(--text-dim)] select-none">{specsOpen ? "▲" : "▼"}</span>
         </button>
         {specsOpen && (
-          <table className="w-full text-sm border-t border-[var(--border)]">
-            <tbody>
-              {[
-                ["Sensor",        "Sentinel-2 MSI (ESA Copernicus)"],
-                ["Bands",         "B3 Green + B8 NIR — NDWI water index"],
-                ["Cloud filter",  "< 10% cloud cover per scene"],
-                ["Baseline",      "2019 (annual median composite)"],
-                ["Current",       "2024 (annual median composite)"],
-                ["Resolution",    "30 m analysis scale"],
-                ["Water index",   "NDWI > 0.1 = water, ≤ 0.1 = land"],
-                ["Platform",      "Google Earth Engine"],
-                ["Territory",     `${loc.name} · ${loc.coords}`],
-                ["EEZ",           loc.eez],
-              ].map(([label, value]) => (
-                <tr key={label} className="border-b border-[var(--border)] last:border-0">
-                  <td className="px-5 py-3 font-mono text-xs tracking-[0.08em] uppercase text-[var(--text-dim)] w-36">
-                    {label}
-                  </td>
-                  <td className="px-5 py-3 text-[var(--text-mid)]">{value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="border-t border-[var(--border)]">
+            {[
+              ["Sensor",       "Sentinel-2 MSI (ESA Copernicus)"],
+              ["Bands",        "B3 Green + B8 NIR — NDWI water index"],
+              ["Cloud filter", "< 10% cloud cover per scene"],
+              ["Baseline",     "2019 — annual median composite"],
+              ["Current",      "2024 — annual median composite"],
+              ["Resolution",   "30 m analysis scale"],
+              ["Water index",  "NDWI > 0.1 = water  ·  ≤ 0.1 = land"],
+              ["Platform",     "Google Earth Engine"],
+              ["Territory",    `${loc.name} · ${loc.coords}`],
+              ["EEZ",          loc.eez],
+            ].map(([label, value], i) => (
+              <div key={label}
+                   className={`flex items-baseline gap-4 px-5 py-2.5 ${i % 2 === 0 ? "bg-surface2/20" : ""}`}>
+                <span className="font-mono text-[0.6rem] tracking-[0.12em] uppercase text-[var(--text-dim)] w-28 flex-shrink-0">
+                  {label}
+                </span>
+                <span className="font-mono text-[0.7rem] text-[var(--text-mid)]">{value}</span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
@@ -414,30 +419,62 @@ export function CoastlineModule({ loc }: { loc: Location }) {
         </div>
       </div>
 
-      {/* Analysis running indicator */}
+      {/* Analysis running — full mission scan UI */}
       {state.status === "running" && (
-        <div className="rounded-lg border border-teal/20 bg-teal/5 px-6 py-8">
-          <div className="font-mono text-xs tracking-[0.2em] uppercase text-teal mb-6 text-center">
-            Querying Google Earth Engine
-          </div>
-          <div className="flex items-start justify-between max-w-sm mx-auto gap-2">
-            {ANALYSIS_STEPS.map((step, i) => (
-              <div key={step} className="flex flex-col items-center gap-2 flex-1">
-                <div className={`rounded-full transition-all duration-500
-                                 ${i < analysisStep
-                                   ? "w-2 h-2 bg-teal"
-                                   : i === analysisStep
-                                   ? "w-2.5 h-2.5 bg-teal animate-pulse"
-                                   : "w-2 h-2 bg-surface2"}`} />
-                <div className={`font-mono text-[0.65rem] tracking-[0.06em] text-center leading-tight
-                                 ${i === analysisStep ? "text-teal" : i < analysisStep ? "text-[var(--text-dim)]" : "text-[var(--border)]"}`}>
-                  {step}
+        <div className="rounded-lg border border-teal/25 bg-surface overflow-hidden relative">
+          <div className="scan-line" />
+          {/* Grid overlay */}
+          <div className="absolute inset-0 pointer-events-none opacity-30"
+               style={{ backgroundImage: "repeating-linear-gradient(90deg, rgba(76,185,192,0.05) 0px, rgba(76,185,192,0.05) 1px, transparent 1px, transparent 60px)" }} />
+
+          <div className="relative px-8 py-10">
+            <div className="flex items-center justify-center gap-3 mb-8">
+              <span className="relative flex items-center justify-center w-3 h-3">
+                <span className="absolute w-5 h-5 rounded-full bg-teal/20 animate-ping" />
+                <span className="w-2 h-2 rounded-full bg-teal" />
+              </span>
+              <span className="font-mono text-xs tracking-[0.25em] uppercase text-teal">
+                Querying Google Earth Engine
+              </span>
+            </div>
+
+            {/* Step pipeline */}
+            <div className="flex items-center justify-center gap-0 max-w-lg mx-auto mb-8">
+              {ANALYSIS_STEPS.map((step, i) => (
+                <div key={step} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center gap-2 flex-1">
+                    <div className={`w-7 h-7 rounded flex items-center justify-center border transition-all duration-500
+                                    ${i < analysisStep
+                                      ? "bg-teal/20 border-teal/50"
+                                      : i === analysisStep
+                                      ? "bg-teal/10 border-teal animate-pulse"
+                                      : "bg-surface2 border-[var(--border)]"}`}>
+                      <span className={`font-mono text-[0.6rem] font-bold
+                                        ${i < analysisStep ? "text-teal" : i === analysisStep ? "text-teal" : "text-[var(--border)]"}`}>
+                        {i < analysisStep ? "✓" : String(i + 1)}
+                      </span>
+                    </div>
+                    <span className={`font-mono text-[0.58rem] tracking-[0.08em] uppercase text-center
+                                      ${i === analysisStep ? "text-teal" : i < analysisStep ? "text-[var(--text-dim)]" : "text-[var(--border)]"}`}>
+                      {step}
+                    </span>
+                  </div>
+                  {i < ANALYSIS_STEPS.length - 1 && (
+                    <div className={`h-px w-6 mb-5 flex-shrink-0 transition-all duration-500 ${i < analysisStep ? "bg-teal/50" : "bg-[var(--border)]"}`} />
+                  )}
                 </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-6 w-40 mx-auto h-0.5 bg-surface2 rounded overflow-hidden">
-            <div className="h-full bg-teal rounded w-1/2" style={{ animation: "pulse 1.5s ease-in-out infinite" }} />
+              ))}
+            </div>
+
+            {/* Progress bar */}
+            <div className="w-full max-w-xs mx-auto h-px bg-surface2 rounded overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-teal/60 to-teal rounded"
+                   style={{
+                     width: `${((analysisStep + 0.5) / ANALYSIS_STEPS.length) * 100}%`,
+                     transition: "width 0.8s ease-out",
+                     boxShadow: "0 0 8px rgba(76,185,192,0.6)"
+                   }} />
+            </div>
           </div>
         </div>
       )}
@@ -461,27 +498,40 @@ export function CoastlineModule({ loc }: { loc: Location }) {
           <MetricCards data={state.data} />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 rounded-lg border border-[var(--border)] bg-surface p-5"
-                 style={{ borderLeftColor: "rgba(76,185,192,0.45)", borderLeftWidth: "2px" }}>
-              <div className="font-mono text-xs tracking-[0.14em] uppercase text-[var(--text-dim)] mb-2">
-                What This Means
+            {/* Intelligence assessment — pull quote style */}
+            <div className="lg:col-span-2 rounded-lg border border-[var(--border)] bg-surface overflow-hidden relative">
+              <div className="absolute left-0 top-0 bottom-0 w-0.5"
+                   style={{ background: state.data.net_change_m < -1 ? "#E05B4B" : state.data.net_change_m > 1 ? "#4CB9C0" : "rgba(74,102,128,0.5)" }} />
+              <div className="px-6 py-5">
+                <div className="font-mono text-[0.58rem] tracking-[0.2em] uppercase text-[var(--text-dim)] mb-3">
+                  Intelligence Assessment
+                </div>
+                <p className="font-sans text-base text-[var(--text)] leading-relaxed font-light">
+                  {getInterpretation(state.data)}
+                </p>
               </div>
-              <p className="font-sans text-sm text-[var(--text-mid)] leading-relaxed">
-                {getInterpretation(state.data)}
-              </p>
             </div>
-            <div className="rounded-lg border border-[var(--border)] bg-surface px-5 py-4 flex flex-col justify-between gap-3">
+
+            {/* Boundary + share */}
+            <div className="rounded-lg border border-[var(--border)] bg-surface px-5 py-4 flex flex-col justify-between gap-4">
               <div>
-                <div className="font-mono text-xs tracking-[0.12em] uppercase text-[var(--text-dim)] mb-1">
+                <div className="font-mono text-[0.58rem] tracking-[0.2em] uppercase text-[var(--text-dim)] mb-3">
                   Analysis Boundary
                 </div>
-                <div className="font-mono text-xs text-[var(--text-mid)] leading-relaxed">
-                  SW {sw}<br />NE {ne}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[0.6rem] text-[var(--text-dim)]">SW</span>
+                    <span className="font-mono text-[0.65rem] text-[var(--text-mid)]">{sw}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[0.6rem] text-[var(--text-dim)]">NE</span>
+                    <span className="font-mono text-[0.65rem] text-[var(--text-mid)]">{ne}</span>
+                  </div>
                 </div>
               </div>
               <button
                 onClick={copyShareLink}
-                className="font-mono text-xs tracking-[0.08em] uppercase px-3 py-2 rounded
+                className="font-mono text-[0.65rem] tracking-[0.1em] uppercase px-3 py-2.5 rounded
                            border border-[var(--border)] text-[var(--text-dim)]
                            hover:border-teal hover:text-teal transition-colors w-full"
               >

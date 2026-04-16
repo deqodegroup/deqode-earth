@@ -45,34 +45,37 @@ export default async function CoastlinePage({ params }: Props) {
       </div>
 
       {/* Module header */}
-      <section className="border-b border-[var(--border)] px-16 py-8 bg-surface/20 relative overflow-hidden">
+      <section className="border-b border-[var(--border)] px-16 py-10 relative overflow-hidden">
+        {/* Background layers */}
         <div className="absolute inset-0 pointer-events-none"
-             style={{ background: "radial-gradient(ellipse 50% 120% at 0% 50%, rgba(76,185,192,0.05) 0%, transparent 60%)" }} />
-        <div className="max-w-[1440px] mx-auto flex items-start justify-between gap-6 flex-wrap relative z-10">
+             style={{ background: "radial-gradient(ellipse 60% 200% at -5% 50%, rgba(76,185,192,0.08) 0%, transparent 60%)" }} />
+        <div className="absolute inset-0 pointer-events-none opacity-20"
+             style={{ backgroundImage: "repeating-linear-gradient(90deg, rgba(76,185,192,0.06) 0px, rgba(76,185,192,0.06) 1px, transparent 1px, transparent 80px), repeating-linear-gradient(0deg, rgba(76,185,192,0.06) 0px, rgba(76,185,192,0.06) 1px, transparent 1px, transparent 80px)" }} />
+        <div className="scan-line" />
+
+        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-6 flex-wrap relative z-10">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="font-mono text-xl text-teal glow-text-teal">◎</span>
-              <h1 className="font-display text-2xl text-[var(--text)]">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="font-mono text-2xl text-teal glow-text-teal" style={{ animation: "earth-orbit 8s linear infinite", display: "inline-block" }}>◎</span>
+              <h1 className="font-display text-3xl text-[var(--text)] tracking-wide">
                 Coastline Intelligence
               </h1>
+              <span className="font-mono text-[0.6rem] tracking-[0.2em] uppercase px-2 py-0.5 rounded border border-teal/30 text-teal bg-teal/5">
+                Live
+              </span>
             </div>
-            <p className="font-sans text-sm text-[var(--text-mid)] max-w-lg leading-relaxed">
-              Sentinel-2 optical shoreline change analysis using NDWI water index
-              composites. Quantifies erosion, accretion, and net coastal displacement
-              over multi-year periods.
+            <p className="font-sans text-sm text-[var(--text-mid)] max-w-xl leading-relaxed">
+              Sentinel-2 optical shoreline change analysis · NDWI water index composites ·
+              Quantifies erosion, accretion, and net coastal displacement over multi-year periods.
             </p>
           </div>
 
-          <div className="flex flex-col gap-2 text-right">
-            <div className="font-mono text-[0.65rem] tracking-[0.1em] uppercase text-[var(--text-dim)]">
-              Territory
-            </div>
-            <div className="font-sans text-sm font-medium text-[var(--text)]">
-              {loc.flag} {loc.name}
-            </div>
-            <div className="font-mono text-[0.65rem] tracking-[0.1em] uppercase text-[var(--text-dim)]">
-              {loc.coords} · EEZ {loc.eez}
-            </div>
+          {/* Territory block */}
+          <div className="rounded-lg border border-[var(--border)] bg-surface/60 px-5 py-4 flex flex-col gap-1 min-w-[200px]">
+            <div className="font-mono text-[0.58rem] tracking-[0.2em] uppercase text-[var(--text-dim)]">Territory</div>
+            <div className="font-sans text-lg font-medium text-[var(--text)]">{loc.flag} {loc.name}</div>
+            <div className="font-mono text-[0.6rem] tracking-[0.1em] text-[var(--text-dim)]">{loc.coords}</div>
+            <div className="font-mono text-[0.6rem] tracking-[0.1em] text-[var(--text-dim)]">EEZ {loc.eez}</div>
           </div>
         </div>
       </section>
