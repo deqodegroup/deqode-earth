@@ -11,6 +11,7 @@ export function UserTable({ initialUsers }: Props) {
   const [users, setUsers] = useState<Profile[]>(initialUsers)
   const [showInvite, setShowInvite] = useState(false)
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   async function refreshUsers() {
     const res = await fetch('/api/admin/users')
@@ -19,33 +20,50 @@ export function UserTable({ initialUsers }: Props) {
   }
 
   async function resendInvite(email: string) {
-    await fetch('/api/admin/invite/resend', {
+    setError(null)
+    const res = await fetch('/api/admin/invite/resend', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     })
+    if (!res.ok) {
+      const data = await res.json()
+      setError(data.error ?? 'Failed to resend invite.')
+    }
   }
 
   async function toggleStatus(user: Profile) {
     setLoadingId(user.id)
+    setError(null)
     const newStatus = user.invite_status === 'deactivated' ? 'active' : 'deactivated'
-    await fetch(`/api/admin/users/${user.id}`, {
+    const res = await fetch(`/api/admin/users/${user.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ invite_status: newStatus }),
     })
-    await refreshUsers()
+    if (!res.ok) {
+      const data = await res.json()
+      setError(data.error ?? 'Failed to update status.')
+    } else {
+      await refreshUsers()
+    }
     setLoadingId(null)
   }
 
   async function updateRole(userId: string, role: string) {
     setLoadingId(userId)
-    await fetch(`/api/admin/users/${userId}`, {
+    setError(null)
+    const res = await fetch(`/api/admin/users/${userId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role }),
     })
-    await refreshUsers()
+    if (!res.ok) {
+      const data = await res.json()
+      setError(data.error ?? 'Failed to update role.')
+    } else {
+      await refreshUsers()
+    }
     setLoadingId(null)
   }
 
@@ -64,6 +82,12 @@ export function UserTable({ initialUsers }: Props) {
           onClose={() => setShowInvite(false)}
           onSuccess={refreshUsers}
         />
+      )}
+
+      {error && (
+        <div className="font-mono text-[0.65rem] text-coral border border-coral/30 bg-coral/5 rounded px-3 py-2 mb-4">
+          {error}
+        </div>
       )}
 
       <div className="flex items-center justify-between mb-6">

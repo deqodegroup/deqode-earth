@@ -14,7 +14,7 @@ const ORG_SLUGS = ['deqode', ...LOCATIONS_LIST.map(l => l.slug)]
 export function InviteModal({ onClose, onSuccess }: Props) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<Role>('viewer')
-  const [org_slug, setOrgSlug] = useState('niue')
+  const [org_slug, setOrgSlug] = useState(ORG_SLUGS[1] ?? 'deqode')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

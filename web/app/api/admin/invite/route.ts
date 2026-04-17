@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   })
 
   if (inviteError) {
-    return NextResponse.json({ error: inviteError.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to send invite.' }, { status: 500 })
   }
 
   const { error: profileError } = await admin.from('profiles').insert({
@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
   })
 
   if (profileError) {
-    return NextResponse.json({ error: profileError.message }, { status: 500 })
+    await admin.auth.admin.deleteUser(inviteData.user.id)
+    return NextResponse.json({ error: 'Failed to create user profile.' }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })

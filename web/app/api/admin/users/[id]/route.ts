@@ -16,13 +16,15 @@ export async function PATCH(
   if (auth instanceof NextResponse) return auth
 
   const { id } = await params
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_REGEX.test(id)) {
+    return NextResponse.json({ error: 'Invalid user ID.' }, { status: 400 })
+  }
   const body = await request.json() as PatchBody
 
-  const allowed: (keyof PatchBody)[] = ['role', 'invite_status']
   const update: PatchBody = {}
-  for (const key of allowed) {
-    if (body[key] !== undefined) update[key] = body[key] as never
-  }
+  if (body.role !== undefined) update.role = body.role
+  if (body.invite_status !== undefined) update.invite_status = body.invite_status
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
