@@ -3,6 +3,7 @@ import { TopNav } from "@/components/nav/TopNav";
 import { CountryHero } from "@/components/dashboard/CountryHero";
 import { ModuleGrid } from "@/components/dashboard/ModuleGrid";
 import { LOCATIONS, LOCATIONS_LIST } from "@/lib/locations";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 
 interface Props {
@@ -28,11 +29,14 @@ export default async function CountryPage({ params }: Props) {
   const loc = LOCATIONS[country];
   if (!loc) notFound();
 
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <div className="min-h-screen flex flex-col bg-ocean">
       <TopNav />
       <CountryHero loc={loc} />
-      <ModuleGrid loc={loc} />
+      <ModuleGrid loc={loc} isAuthenticated={!!user} />
     </div>
   );
 }
