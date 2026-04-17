@@ -1,2 +1,1 @@
 earthengine-api>=0.1.390
-Pillow>=10.0.0

@@ -5,11 +5,10 @@ import { useEffect, useRef } from "react";
 interface CoastlineMapProps {
   center: [number, number];
   zoom: number;
-  overlayUrl?: string;
-  overlayBounds?: [[number, number], [number, number]];
+  tileUrl?: string;
 }
 
-export function CoastlineMap({ center, zoom, overlayUrl, overlayBounds }: CoastlineMapProps) {
+export function CoastlineMap({ center, zoom, tileUrl }: CoastlineMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef       = useRef<any>(null);
   const overlayRef   = useRef<any>(null);
@@ -25,8 +24,8 @@ export function CoastlineMap({ center, zoom, overlayUrl, overlayBounds }: Coastl
         center,
         zoom,
         scrollWheelZoom: true,
-        zoomControl: false,       // we render our own styled controls
-        attributionControl: false, // we render our own attribution
+        zoomControl: false,
+        attributionControl: false,
       });
 
       // Esri World Imagery — photorealistic satellite base
@@ -41,10 +40,8 @@ export function CoastlineMap({ center, zoom, overlayUrl, overlayBounds }: Coastl
         { maxZoom: 18, minZoom: 6, opacity: 0.9 }
       ).addTo(map);
 
-      // Custom dark zoom control — bottom right, away from HUD badges
       L.control.zoom({ position: "bottomright" }).addTo(map);
 
-      // Attribution bottom right, minimal
       L.control.attribution({ position: "bottomright", prefix: false })
         .addAttribution("Imagery © <a href='https://www.esri.com' style='color:#4CB9C0'>Esri</a>")
         .addTo(map);
@@ -63,7 +60,7 @@ export function CoastlineMap({ center, zoom, overlayUrl, overlayBounds }: Coastl
   }, []);
 
   useEffect(() => {
-    if (!overlayUrl || !overlayBounds || !mapRef.current) return;
+    if (!mapRef.current) return;
 
     import("leaflet").then((mod) => {
       const L = mod.default;
@@ -71,14 +68,19 @@ export function CoastlineMap({ center, zoom, overlayUrl, overlayBounds }: Coastl
 
       if (overlayRef.current) {
         mapRef.current.removeLayer(overlayRef.current);
+        overlayRef.current = null;
       }
 
-      overlayRef.current = L.imageOverlay(overlayUrl, overlayBounds, {
-        opacity: 0.9,
-        interactive: false,
+      if (!tileUrl) return;
+
+      // GEE tile URL format: https://earthengine.googleapis.com/v1/.../tiles/{z}/{x}/{y}
+      overlayRef.current = L.tileLayer(tileUrl, {
+        opacity: 0.85,
+        maxZoom: 18,
+        minZoom: 6,
       }).addTo(mapRef.current);
     });
-  }, [overlayUrl, overlayBounds]);
+  }, [tileUrl]);
 
   return <div ref={containerRef} className="w-full" style={{ height: "70vh", minHeight: "520px", maxHeight: "800px" }} />;
 }

@@ -52,8 +52,7 @@ const cacheKey = (slug: string) => `deqode-earth-${slug}-coastline`;
 export function CoastlineModule({ loc }: { loc: Location }) {
   const [state, setState]         = useState<AnalysisState>({ status: "idle" });
   const [thumbState, setThumbState] = useState<ThumbState>("idle");
-  const [overlayUrl, setOverlayUrl] = useState<string | undefined>(undefined);
-  const [overlayBounds, setOverlayBounds] = useState<[[number, number], [number, number]] | undefined>(undefined);
+  const [tileUrl, setTileUrl] = useState<string | undefined>(undefined);
   const [specsOpen, setSpecsOpen] = useState(false);
   const [analysisStep, setAnalysisStep] = useState(0);
   const [lastRun, setLastRun]     = useState<number | null>(null);
@@ -90,7 +89,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
     clearStepTimers();
     setState({ status: "running" });
     setAnalysisStep(0);
-    setOverlayUrl(undefined);
+    setTileUrl(undefined);
     setThumbState("idle");
 
     stepTimers.current = [
@@ -129,11 +128,8 @@ export function CoastlineModule({ loc }: { loc: Location }) {
       })
         .then((r) => r.json())
         .then((r) => {
-          if (r.mapImageUrl && r.bounds) {
-            const [lonMin, latMin, lonMax, latMax] = r.bounds;
-            setOverlayUrl(r.mapImageUrl);
-            // Leaflet bounds: [[lat_min, lon_min], [lat_max, lon_max]]
-            setOverlayBounds([[latMin, lonMin], [latMax, lonMax]]);
+          if (r.tileUrl) {
+            setTileUrl(r.tileUrl);
             setThumbState("done");
           } else {
             setThumbState("error");
@@ -306,8 +302,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
           <CoastlineMap
             center={mapCenter}
             zoom={mapZoom}
-            overlayUrl={overlayUrl}
-            overlayBounds={overlayBounds}
+            tileUrl={tileUrl}
           />
 
           {/* HUD — always visible legend top-right, stats top-left after analysis */}
