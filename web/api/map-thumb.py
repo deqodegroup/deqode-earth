@@ -96,7 +96,9 @@ def generate_tile_url(slug: str):
         "opacity": 0.85,
     })
 
-    tile_url = map_id["tile_fetcher"].url_format
+    mapid = map_id["mapid"]
+    token = map_id["token"]
+    tile_url = f"https://earthengine.googleapis.com/map/{mapid}/{{z}}/{{x}}/{{y}}?token={token}"
 
     return tile_url, bbox
 
