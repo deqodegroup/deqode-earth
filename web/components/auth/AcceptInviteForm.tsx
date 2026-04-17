@@ -18,9 +18,10 @@ export function AcceptInviteForm() {
     setError(null)
     const supabase = createSupabaseBrowserClient()
     const { error } = await supabase.auth.updateUser({ password })
-    if (error) { setError(error.message); setLoading(false); return }
+    if (error) { setError('Failed to set password. Please try again or request a new link.'); setLoading(false); return }
     router.push('/dashboard')
     router.refresh()
+    setLoading(false)
   }
 
   return (
@@ -39,10 +40,11 @@ export function AcceptInviteForm() {
       )}
 
       <div className="flex flex-col gap-1.5">
-        <label className="font-mono text-[0.6rem] tracking-[0.15em] uppercase text-[var(--text-dim)]">
+        <label htmlFor="password" className="font-mono text-[0.6rem] tracking-[0.15em] uppercase text-[var(--text-dim)]">
           New password
         </label>
         <input
+          id="password"
           type="password"
           required
           autoComplete="new-password"
@@ -54,10 +56,11 @@ export function AcceptInviteForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="font-mono text-[0.6rem] tracking-[0.15em] uppercase text-[var(--text-dim)]">
+        <label htmlFor="confirm" className="font-mono text-[0.6rem] tracking-[0.15em] uppercase text-[var(--text-dim)]">
           Confirm password
         </label>
         <input
+          id="confirm"
           type="password"
           required
           autoComplete="new-password"

@@ -1,4 +1,6 @@
-export function AuthCard({ children }: { children: React.ReactNode }) {
+import type { ReactNode } from 'react'
+
+export function AuthCard({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-ocean px-4
                     relative overflow-hidden">

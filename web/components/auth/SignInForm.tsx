@@ -26,6 +26,7 @@ export function SignInForm({ next = '/dashboard' }: Props) {
     }
     router.push(next)
     router.refresh()
+    setLoading(false)
   }
 
   async function handleForgotPassword() {
@@ -71,10 +72,11 @@ export function SignInForm({ next = '/dashboard' }: Props) {
       )}
 
       <div className="flex flex-col gap-1.5">
-        <label className="font-mono text-[0.6rem] tracking-[0.15em] uppercase text-[var(--text-dim)]">
+        <label htmlFor="email" className="font-mono text-[0.6rem] tracking-[0.15em] uppercase text-[var(--text-dim)]">
           Email
         </label>
         <input
+          id="email"
           type="email"
           required
           autoComplete="email"
@@ -88,10 +90,11 @@ export function SignInForm({ next = '/dashboard' }: Props) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="font-mono text-[0.6rem] tracking-[0.15em] uppercase text-[var(--text-dim)]">
+        <label htmlFor="password" className="font-mono text-[0.6rem] tracking-[0.15em] uppercase text-[var(--text-dim)]">
           Password
         </label>
         <input
+          id="password"
           type="password"
           required
           autoComplete="current-password"
