@@ -1,12 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 
 interface Props { next?: string }
 
 export function SignInForm({ next = '/dashboard' }: Props) {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,9 +22,7 @@ export function SignInForm({ next = '/dashboard' }: Props) {
       setLoading(false)
       return
     }
-    router.push(next)
-    router.refresh()
-    setLoading(false)
+    window.location.href = next
   }
 
   async function handleForgotPassword() {
