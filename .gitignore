@@ -3,3 +3,4 @@ __pycache__/
 .env
 *.html
 .streamlit/secrets.toml
+.worktrees/
