@@ -1,23 +1,5 @@
 import { describe, it, expect } from 'vitest'
-
-function isProtectedRoute(pathname: string): boolean {
-  const protectedPrefixes = ['/dashboard', '/admin']
-  const protectedPatterns = [
-    /^\/[^/]+\/coastline/,
-    /^\/[^/]+\/ocean/,
-    /^\/[^/]+\/reef/,
-    /^\/[^/]+\/reports/,
-    /^\/[^/]+\/alerts/,
-  ]
-  return (
-    protectedPrefixes.some(p => pathname.startsWith(p)) ||
-    protectedPatterns.some(r => r.test(pathname))
-  )
-}
-
-function isAdminRoute(pathname: string): boolean {
-  return pathname.startsWith('/admin')
-}
+import { isProtectedRoute, isAdminRoute } from './lib/auth/route-guards'
 
 describe('isProtectedRoute', () => {
   it('homepage is public', () => expect(isProtectedRoute('/')).toBe(false))

@@ -1,25 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-
-const PROTECTED_PREFIXES = ['/dashboard', '/admin']
-const PROTECTED_PATTERNS = [
-  /^\/[^/]+\/coastline/,
-  /^\/[^/]+\/ocean/,
-  /^\/[^/]+\/reef/,
-  /^\/[^/]+\/reports/,
-  /^\/[^/]+\/alerts/,
-]
-
-function isProtectedRoute(pathname: string): boolean {
-  return (
-    PROTECTED_PREFIXES.some(p => pathname.startsWith(p)) ||
-    PROTECTED_PATTERNS.some(r => r.test(pathname))
-  )
-}
-
-function isAdminRoute(pathname: string): boolean {
-  return pathname.startsWith('/admin')
-}
+import { isProtectedRoute, isAdminRoute } from '@/lib/auth/route-guards'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
