@@ -1,11 +1,9 @@
 """
-DEQODE EARTH — Sentinel-2 coastal change overlay
+DEQODE EARTH — Sentinel-2 coastal change tile layer
 Python serverless (Vercel).
 
-Returns a transparent RGBA PNG with ONLY erosion/accretion pixels coloured.
-The satellite base layer is handled by Leaflet (Esri World Imagery tiles) on the frontend.
-
-Method: sampleRectangle().getInfo() — same gRPC path as analyse.py, no permission issues.
+Returns a GEE tile URL template for the erosion/accretion change layer.
+The frontend loads tiles on demand via L.tileLayer — no full image render, no Pillow.
 """
 from http.server import BaseHTTPRequestHandler
 import ee
@@ -14,9 +12,6 @@ import os
 import base64
 import sys
 import traceback
-import io
-
-from PIL import Image
 
 LOCATIONS = {
     "niue":             {"bbox": [-169.9647, -19.155, -169.78, -18.955]},
@@ -34,15 +29,6 @@ BASELINE_END   = "2019-12-31"
 CURRENT_START  = "2024-01-01"
 CURRENT_END    = "2024-12-31"
 
-# 400px raw sample width.
-# Fiji (largest bbox, 0.8° x 0.7°) → 400x350 = 140k px — under the 262k limit.
-RAW_W = 400
-OUT_W = 800
-
-# RGBA colours for change pixels
-EROSION_RGBA   = (224, 91,  75,  220)  # #E05B4B
-ACCRETION_RGBA = (76,  185, 192, 220)  # #4CB9C0
-
 _initialised = False
 
 
@@ -59,19 +45,14 @@ def init_gee():
     _initialised = True
 
 
-def generate_overlay(slug: str):
-    """Returns (data_uri: str, bounds: list)"""
+def generate_tile_url(slug: str):
+    """Returns (tile_url: str, bounds: list)"""
     loc = LOCATIONS.get(slug)
     if not loc:
         raise ValueError(f"Unknown slug: {slug}")
 
     bbox = loc["bbox"]
-    lon_min, lat_min, lon_max, lat_max = bbox
     aoi = ee.Geometry.Rectangle(bbox)
-
-    lon_range = lon_max - lon_min
-    lat_range = lat_max - lat_min
-    scale_m = max(30, (lon_range / RAW_W) * 111320)
 
     def ndwi_composite(start, end):
         return (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
@@ -102,43 +83,22 @@ def generate_overlay(slug: str):
         .reduceNeighborhood(reducer=ee.Reducer.sum(), kernel=kernel)
         .gte(2))
 
-    # Sample both binary bands in one call
-    change_bands = (erosion_mask.rename("erosion")
-                    .addBands(accrtn_mask.rename("accretion")))
-    change_proj  = change_bands.reproject(crs="EPSG:4326", scale=scale_m)
-    rect = change_proj.sampleRectangle(region=aoi, defaultValue=0).getInfo()
-    props = rect["properties"]
+    # Classify: 1 = erosion (#E05B4B coral), 2 = accretion (#4CB9C0 teal)
+    # selfMask() makes non-change pixels fully transparent
+    classified = (erosion_mask.multiply(1)
+                  .add(accrtn_mask.multiply(2))
+                  .selfMask())
 
-    erosion_rows = props["erosion"]
-    accrtn_rows  = props["accretion"]
+    map_id = classified.getMapId({
+        "min": 1,
+        "max": 2,
+        "palette": ["E05B4B", "4CB9C0"],
+        "opacity": 0.85,
+    })
 
-    h = len(erosion_rows)
-    w = len(erosion_rows[0]) if h > 0 else 1
+    tile_url = map_id["tile_fetcher"].url_format
 
-    e_flat = [int(v) for row in erosion_rows for v in row]
-    a_flat = [int(v) for row in accrtn_rows  for v in row]
-
-    # Build RGBA: transparent background, coloured only where change detected
-    rgba = bytearray(w * h * 4)  # all zeros = transparent
-    for i, (e, a) in enumerate(zip(e_flat, a_flat)):
-        idx = i * 4
-        if e:
-            rgba[idx], rgba[idx+1], rgba[idx+2], rgba[idx+3] = EROSION_RGBA
-        elif a:
-            rgba[idx], rgba[idx+1], rgba[idx+2], rgba[idx+3] = ACCRETION_RGBA
-
-    img = Image.frombytes("RGBA", (w, h), bytes(rgba))
-
-    # Upscale — NEAREST preserves crisp hard edges on sparse categorical overlay
-    new_h = max(1, round(h * OUT_W / w))
-    img = img.resize((OUT_W, new_h), Image.NEAREST)
-
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    b64_img = base64.b64encode(buf.getvalue()).decode()
-    data_uri = f"data:image/png;base64,{b64_img}"
-
-    return data_uri, bbox
+    return tile_url, bbox
 
 
 class handler(BaseHTTPRequestHandler):
@@ -155,8 +115,8 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             init_gee()
-            data_uri, bounds = generate_overlay(slug)
-            self._send(200, {"mapImageUrl": data_uri, "bounds": bounds})
+            tile_url, bounds = generate_tile_url(slug)
+            self._send(200, {"tileUrl": tile_url, "bounds": bounds})
 
         except ValueError as e:
             self._send(400, {"error": str(e)})
