@@ -43,13 +43,22 @@ export function SignInForm({ next = '/dashboard' }: Props) {
 
   if (resetSent) {
     return (
-      <div className="text-center">
-        <div className="font-mono text-[0.65rem] tracking-[0.2em] uppercase text-teal mb-3">
-          Reset link sent
+      <div className="text-center flex flex-col gap-4">
+        <div>
+          <div className="font-mono text-[0.65rem] tracking-[0.2em] uppercase text-teal mb-3">
+            Reset link sent
+          </div>
+          <p className="font-sans text-sm text-[var(--text-mid)]">
+            Check your email for a password reset link.
+          </p>
         </div>
-        <p className="font-sans text-sm text-[var(--text-mid)]">
-          Check your email for a password reset link.
-        </p>
+        <button
+          type="button"
+          onClick={() => setResetSent(false)}
+          className="font-mono text-[0.6rem] tracking-[0.1em] uppercase text-[var(--text-dim)] hover:text-teal transition-colors"
+        >
+          ← Back to sign in
+        </button>
       </div>
     )
   }
