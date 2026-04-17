@@ -8,7 +8,7 @@ export interface Profile {
   role: Role
   org_slug: string
   invite_status: InviteStatus
-  invited_at: string
+  invited_at: string | null
   last_sign_in_at: string | null
   created_by: string | null
 }

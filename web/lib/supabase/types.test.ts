@@ -14,4 +14,13 @@ describe('role constants', () => {
   it('viewer cannot download', () => {
     expect(CAN_DOWNLOAD.includes('viewer')).toBe(false)
   })
+  it('admin can run analysis', () => {
+    expect(CAN_RUN_ANALYSIS.includes('admin')).toBe(true)
+  })
+  it('deqode_admin can run analysis', () => {
+    expect(CAN_RUN_ANALYSIS.includes('deqode_admin')).toBe(true)
+  })
+  it('admin can download', () => {
+    expect(CAN_DOWNLOAD.includes('admin')).toBe(true)
+  })
 })
