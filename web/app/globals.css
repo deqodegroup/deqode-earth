@@ -38,6 +38,9 @@
   --color-gold:     var(--gold);
   --color-coral:    var(--coral);
   --color-sky:      var(--sky);
+  --color-text:     var(--text);
+  --color-text-mid: var(--text-mid);
+  --color-text-dim: var(--text-dim);
   --color-migration: var(--migration);
   --color-retreat:   var(--retreat);
   --font-display:    var(--font-playfair-sc), serif;
@@ -191,6 +194,10 @@ html, body {
 
 .panel-enter {
   animation: panel-slide-in 300ms var(--ease-decelerate) forwards;
+}
+
+.panel-exit {
+  animation: panel-slide-out 250ms var(--ease-standard) forwards;
 }
 
 /* === Displacement flow line === */
