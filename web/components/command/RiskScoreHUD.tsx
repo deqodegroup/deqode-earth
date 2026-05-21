@@ -30,16 +30,18 @@ export function RiskScoreHUD({
     setDisplayed(0);
     const start = performance.now();
     const duration = 600;
+    let rafId: number;
 
     function tick(now: number) {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
       setDisplayed(Math.round(eased * score));
-      if (progress < 1) requestAnimationFrame(tick);
+      if (progress < 1) rafId = requestAnimationFrame(tick);
     }
 
-    requestAnimationFrame(tick);
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
   }, [score]);
 
   return (
