@@ -14,6 +14,20 @@
   --text-dim: #4A6680;
   --border:   rgba(76,185,192,0.10);
   --grid:     rgba(76,185,192,0.04);
+
+  /* displacement narrative colors */
+  --migration: oklch(68% 0.14 295);
+  --retreat:   oklch(70% 0.11 45);
+
+  /* panel animation timing */
+  --ease-decelerate: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-standard:   cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* layout dimensions */
+  --bar-height:    48px;
+  --strip-height:  32px;
+  --tree-width:    240px;
+  --panel-width:   360px;
 }
 
 @theme inline {
@@ -24,10 +38,13 @@
   --color-gold:     var(--gold);
   --color-coral:    var(--coral);
   --color-sky:      var(--sky);
-  --font-display:   var(--font-playfair-sc), serif;
-  --font-heading:   var(--font-playfair), serif;
-  --font-sans:      var(--font-dm-sans), sans-serif;
-  --font-mono:      var(--font-jetbrains), monospace;
+  --color-migration: var(--migration);
+  --color-retreat:   var(--retreat);
+  --font-display:    var(--font-playfair-sc), serif;
+  --font-heading:    var(--font-playfair), serif;
+  --font-syne:       var(--font-syne), sans-serif;
+  --font-sans:       var(--font-source-sans), sans-serif;
+  --font-mono:       var(--font-jetbrains), monospace;
 }
 
 html, body {
@@ -159,4 +176,30 @@ html, body {
   );
   background-size: 200% 100%;
   animation: earth-shimmer 4s ease-in-out infinite;
+}
+
+/* === Intelligence Panel slide-in === */
+@keyframes panel-slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes panel-slide-out {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(100%); opacity: 0; }
+}
+
+.panel-enter {
+  animation: panel-slide-in 300ms var(--ease-decelerate) forwards;
+}
+
+/* === Displacement flow line === */
+@keyframes dash-flow {
+  to { stroke-dashoffset: -20; }
+}
+
+/* === Counter roll-up === */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
