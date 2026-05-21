@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import { CommandBar } from "@/components/command/CommandBar";
 import { StatusStrip } from "@/components/command/StatusStrip";
 import { MapCanvasClient } from "@/components/map/MapCanvasClient";
 import { RegionTree } from "@/components/command/RegionTree";
+import { IntelligencePanel } from "@/components/command/IntelligencePanel";
 
 export default function CommandCenter() {
   return (
@@ -38,8 +40,9 @@ export default function CommandCenter() {
           <MapCanvasClient className="absolute inset-0" />
         </div>
 
-        {/* Right: Intelligence Panel placeholder — filled in Phase 2 */}
-        {/* IntelligencePanel rendered in Phase 2 */}
+        <Suspense fallback={null}>
+          <IntelligencePanel />
+        </Suspense>
       </main>
 
       <StatusStrip demoMode={false} />
