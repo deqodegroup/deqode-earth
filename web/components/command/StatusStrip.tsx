@@ -1,0 +1,59 @@
+"use client";
+
+import { LOCATIONS_LIST } from "@/lib/locations";
+
+export function StatusStrip({ demoMode = false }: { demoMode?: boolean }) {
+  const liveCount = LOCATIONS_LIST.filter((l) => l.isLive).length;
+
+  return (
+    <footer
+      className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between
+                 px-6 bg-ocean/95 backdrop-blur-sm border-t border-[var(--border)]"
+      style={{ height: "var(--strip-height)" }}
+    >
+      <div className="flex items-center gap-6">
+        <StatusPill color="teal" label="S2 Active" />
+        <StatusPill color="dim" label={`${liveCount} Regions`} />
+        <StatusPill color="dim" label="Updated 14 min ago" />
+      </div>
+
+      {demoMode && (
+        <div className="flex items-center gap-2 rounded border border-teal/30 bg-teal/5 px-3 py-0.5">
+          <span className="w-1 h-1 rounded-full bg-teal animate-pulse" />
+          <span className="font-mono text-[0.55rem] tracking-[0.2em] uppercase text-teal">
+            COPRRRA Demo Mode
+          </span>
+        </div>
+      )}
+
+      <div className="hidden md:block">
+        <span className="font-mono text-[0.55rem] tracking-[0.12em] uppercase text-[var(--text-dim)]">
+          DEQODE GROUP · TOFI · Classification: SOVEREIGN
+        </span>
+      </div>
+    </footer>
+  );
+}
+
+function StatusPill({
+  color,
+  label,
+}: {
+  color: "teal" | "gold" | "coral" | "dim";
+  label: string;
+}) {
+  const colorClass =
+    color === "teal"
+      ? "text-teal"
+      : color === "gold"
+        ? "text-gold"
+        : color === "coral"
+          ? "text-coral"
+          : "text-[var(--text-dim)]";
+
+  return (
+    <span className={`font-mono text-[0.55rem] tracking-[0.12em] uppercase ${colorClass}`}>
+      {label}
+    </span>
+  );
+}
