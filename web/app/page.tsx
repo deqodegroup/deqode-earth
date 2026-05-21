@@ -1,6 +1,7 @@
 import { CommandBar } from "@/components/command/CommandBar";
 import { StatusStrip } from "@/components/command/StatusStrip";
 import { MapCanvasClient } from "@/components/map/MapCanvasClient";
+import { RegionTree } from "@/components/command/RegionTree";
 
 export default function CommandCenter() {
   return (
@@ -18,18 +19,18 @@ export default function CommandCenter() {
           paddingBottom: "var(--strip-height)",
         }}
       >
-        {/* Left: Region Tree placeholder — filled in Phase 2 */}
+        {/* Left: Region Tree */}
         <aside
           className="flex-shrink-0 border-r border-[var(--border)] bg-surface/60 overflow-y-auto"
           style={{ width: "var(--tree-width)" }}
           aria-label="Region selector"
         >
-          <div className="px-4 pt-5 pb-3">
+          <div className="px-4 pt-5 pb-2 border-b border-[var(--border)]">
             <div className="font-mono text-[0.55rem] tracking-[0.25em] uppercase text-[var(--text-dim)]">
               Asia-Pacific
             </div>
           </div>
-          {/* RegionTree rendered in Phase 2 */}
+          <RegionTree />
         </aside>
 
         {/* Centre: Full map */}
