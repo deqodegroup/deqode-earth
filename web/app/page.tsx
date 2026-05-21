@@ -1,12 +1,6 @@
-import dynamic from "next/dynamic";
 import { CommandBar } from "@/components/command/CommandBar";
 import { StatusStrip } from "@/components/command/StatusStrip";
-
-// MapCanvas requires window — no SSR
-const MapCanvas = dynamic(
-  () => import("@/components/map/MapCanvas").then((m) => m.MapCanvas),
-  { ssr: false }
-);
+import { MapCanvasClient } from "@/components/map/MapCanvasClient";
 
 export default function CommandCenter() {
   return (
@@ -40,7 +34,7 @@ export default function CommandCenter() {
 
         {/* Centre: Full map */}
         <div className="flex-1 relative overflow-hidden">
-          <MapCanvas className="absolute inset-0" />
+          <MapCanvasClient className="absolute inset-0" />
         </div>
 
         {/* Right: Intelligence Panel placeholder — filled in Phase 2 */}
