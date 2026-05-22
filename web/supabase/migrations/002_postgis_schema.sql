@@ -67,11 +67,8 @@ CREATE TABLE IF NOT EXISTS flood_forecasts (
   inundation_depth_m    numeric,
   coastal_depth_m       numeric,
   scenario              text,
-  location_hash         text GENERATED ALWAYS AS (
-    encode(sha256((source || forecast_date::text || latitude::text || longitude::text)::bytea), 'hex')
-  ) STORED,
   ingested_at           timestamptz DEFAULT now(),
-  UNIQUE(source, forecast_date, location_hash)
+  UNIQUE(source, forecast_date, latitude, longitude)
 );
 CREATE INDEX IF NOT EXISTS flood_forecasts_geom_idx ON flood_forecasts USING GIST (location);
 CREATE INDEX IF NOT EXISTS flood_forecasts_date_idx ON flood_forecasts (forecast_date DESC);
