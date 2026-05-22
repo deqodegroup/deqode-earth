@@ -66,7 +66,7 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Supabase PostGIS schema + migration (4 tables, GIST indexes, RLS)
+- [x] 03-01-PLAN.md — Supabase PostGIS schema + migration (4 tables, GIST indexes, RLS)
 - [ ] 03-02-PLAN.md — Brisbane flood ingestion (BCC FeatureServer + QLD 2011 GPKG + WMIP gauges)
 - [ ] 03-03-PLAN.md — Pacific displacement ingestion (IDMC GIDD + World Bank wbgapi + PDH.stat SDMX)
 - [ ] 03-04-PLAN.md — Flood depth intelligence (Deltares Planetary Computer + JRC GloFAS GEE + Open-Meteo)
@@ -137,7 +137,7 @@ Plans:
 |---|---|---|---|
 | 1. Command Center Shell | 4/4 | Complete | 2026-05-20 |
 | 2. Region Intelligence | 4/4 | Complete | 2026-05-21 |
-| 3. Brisbane & Pacific Data Pipeline | 0/5 | Planning done | - |
+| 3. Brisbane & Pacific Data Pipeline | 1/5 | In Progress|  |
 | 4. Compare View | 0/2 | Not started | - |
 | 5. SIDS Data Activation | 0/2 | Not started | - |
 | 6. Nightly Agent Pipeline | 0/2 | Not started | - |
