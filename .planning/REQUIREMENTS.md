@@ -39,12 +39,12 @@ flood_zones, flood_forecasts, displacement_records, analysis_cache tables with P
 
 ### EARTH-08: GitHub Actions Ingestion Pipeline
 Nightly ingestion workflow (.github/workflows/nightly-ingest.yml). Python scripts for each data source. Fail-independently pattern.
-**Status:** Active
+**Status:** ✓ Validated (Phase 3, Plan 02 — 2026-05-22)
 **Phase:** 3
 
 ### EARTH-09: Brisbane Flood Data
 BCC Flood Awareness FeatureServer (property-level risk + 2011/2022 extents). QLD Flood Extent 2011 GPKG (Grantham polygon). QLD WMIP live gauge API (Lockyer Creek + Brisbane River).
-**Status:** Active
+**Status:** ✓ Validated (Phase 3, Plan 02 — 2026-05-22)
 **Phase:** 3
 
 ### EARTH-10: Pacific Displacement Data

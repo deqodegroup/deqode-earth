@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-05-22T09:29:22.856Z"
+status: in_progress
+last_updated: "2026-05-22T10:30:00.000Z"
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # State — DEQODE EARTH
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-22)
 
 **Core value:** Government researcher opens DEQODE EARTH, clicks any Pacific SIDS, gets verified displacement + coastline + flood risk data in 10 seconds.
-**Current focus:** Phase 03 — brisbane-data-pipeline (Plan 2 of 5 next)
-**Last completed:** 03-01 PostGIS schema migration (2026-05-22)
+**Current focus:** Phase 03 — brisbane-data-pipeline (Plan 3 of 5 next)
+**Last completed:** 03-02 Brisbane flood ingestion pipeline (2026-05-22)
 **Hard deadline:** 2 September 2026 (COPRRRA Symposium, Brisbane)
 
 ## Current Position
 
 Phase: 03 (brisbane-data-pipeline) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 
 ## Phases Complete
 
@@ -50,6 +50,15 @@ Plan: 2 of 5
 - /region/[slug]/[module] → CoastlineModule live, others stubbed
 - 26 tests passing, TypeScript clean, production build green
 
+### Phase 3 Plan 02: Brisbane Flood Ingestion ✓ (2026-05-22)
+
+- .github/workflows/nightly-ingest.yml — 6-job workflow, cron 0 18 * * * (04:00 AEST), workflow_dispatch
+- scripts/ingest/requirements.txt — geopandas, shapely, supabase, wbgapi, pystac-client, planetary-computer
+- scripts/ingest/ingest_bcc_flood.py — BCC FeatureServer paginated, region_slug=brisbane, dynamic field resolution
+- scripts/ingest/ingest_qld_2011.py — QLD 2011 GPKG download, Grantham bbox filter, region_slug=grantham
+- scripts/ingest/ingest_wmip_gauges.py — WMIP live gauge discovery, flood_forecasts upsert source=wmip
+- Auto-fixed: flood_forecasts on_conflict uses latitude,longitude (not location_hash — not in actual migration)
+
 ## Key Technical Decisions
 
 - **Map:** Leaflet (not Mapbox) — free tier, no token required at MVP
@@ -63,6 +72,9 @@ Plan: 2 of 5
 - **Coastline:** NDWI > 0 currently (known issue — fix to MNDWI + Otsu in Phase 5)
 - **Phase 3 spatial queries:** flood_zones_in_bbox as Postgres RPC function for ST_Intersects bbox queries — cleaner than inline SQL in API routes
 - **Phase 3 RLS pattern:** service_role write on all 4 PostGIS tables — ingestion scripts use service key, not user auth tokens
+- **flood_forecasts upsert:** on_conflict uses (source, forecast_date, latitude, longitude) — location_hash GENERATED column was NOT added to final 002_postgis_schema.sql migration
+- **GitHub Actions secrets:** SUPABASE_URL + SUPABASE_SERVICE_KEY must be configured before first nightly run
+- **QLD 2011 GPKG URL:** hardcoded resource URL may need updating; documented in ingest_qld_2011.py header
 
 ## Environment Variables (Vercel)
 
