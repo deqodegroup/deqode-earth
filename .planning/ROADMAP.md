@@ -8,7 +8,7 @@ DEQODE EARTH ships as a live intelligence platform for the COPRRRA Symposium (2 
 
 - [x] **Phase 1: Command Center Shell** — Full-viewport map, CommandBar, StatusStrip, security headers, OKLCH token system
 - [x] **Phase 2: Region Intelligence** — RegionTree, IntelligencePanel, RiskScoreHUD, CoastlineModule, 10 regions
-- [ ] **Phase 3: Brisbane & Pacific Data Pipeline** — Supabase PostGIS schema, GitHub Actions ingestion, Brisbane flood data, Pacific displacement data, flood depth intelligence, Next.js API routes
+- [x] **Phase 3: Brisbane & Pacific Data Pipeline** — Supabase PostGIS schema, GitHub Actions ingestion, Brisbane flood data, Pacific displacement data, flood depth intelligence, Next.js API routes (completed 2026-05-22)
 - [ ] **Phase 4: Compare View** — /compare/[origin]/[dest] side-by-side SIDS vs Australia, COPRRRA centrepiece
 - [ ] **Phase 5: SIDS Data Activation** — MNDWI coastline algorithm fix, live data for all 8 SIDS, SLR thresholds, climate projections
 - [ ] **Phase 6: Nightly Agent Pipeline** — Automated GEE analysis, IOM DTM displacement flows, data freshness
@@ -68,9 +68,9 @@ Plans:
 Plans:
 - [x] 03-01-PLAN.md — Supabase PostGIS schema + migration (4 tables, GIST indexes, RLS)
 - [x] 03-02-PLAN.md — Brisbane flood ingestion (BCC FeatureServer + QLD 2011 GPKG + WMIP gauges)
-- [ ] 03-03-PLAN.md — Pacific displacement ingestion (IDMC GIDD + World Bank wbgapi + PDH.stat SDMX)
-- [ ] 03-04-PLAN.md — Flood depth intelligence (Deltares Planetary Computer + JRC GloFAS GEE + Open-Meteo)
-- [ ] 03-05-PLAN.md — Next.js API routes + IntelligencePanel data wiring
+- [x] 03-03-PLAN.md — Pacific displacement ingestion (IDMC GIDD + World Bank wbgapi + PDH.stat SDMX)
+- [x] 03-04-PLAN.md — Flood depth intelligence (Deltares Planetary Computer + JRC GloFAS GEE + Open-Meteo)
+- [x] 03-05-PLAN.md — Next.js API routes + IntelligencePanel data wiring
 
 ### Phase 4: Compare View
 **Goal**: Side-by-side comparison of SIDS origin vs Australian destination — COPRRRA centrepiece
@@ -137,7 +137,7 @@ Plans:
 |---|---|---|---|
 | 1. Command Center Shell | 4/4 | Complete | 2026-05-20 |
 | 2. Region Intelligence | 4/4 | Complete | 2026-05-21 |
-| 3. Brisbane & Pacific Data Pipeline | 2/5 | In Progress|  |
+| 3. Brisbane & Pacific Data Pipeline | 5/5 | Complete   | 2026-05-22 |
 | 4. Compare View | 0/2 | Not started | - |
 | 5. SIDS Data Activation | 0/2 | Not started | - |
 | 6. Nightly Agent Pipeline | 0/2 | Not started | - |

@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-last_updated: "2026-05-22T10:30:00.000Z"
+status: unknown
+last_updated: "2026-05-22T10:22:36.634Z"
 progress:
   total_phases: 7
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 7
 ---
 
 # State — DEQODE EARTH
@@ -18,14 +18,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-22)
 
 **Core value:** Government researcher opens DEQODE EARTH, clicks any Pacific SIDS, gets verified displacement + coastline + flood risk data in 10 seconds.
-**Current focus:** Phase 03 — brisbane-data-pipeline (Plan 3 of 5 next)
-**Last completed:** 03-02 Brisbane flood ingestion pipeline (2026-05-22)
+**Current focus:** Phase 03 — brisbane-data-pipeline COMPLETE (all 5 plans done 2026-05-22)
+**Last completed:** 03-05 API routes + IntelligencePanel wiring (2026-05-22)
 **Hard deadline:** 2 September 2026 (COPRRRA Symposium, Brisbane)
+**Last session:** 2026-05-22T10:20:33Z — Stopped at: Completed 03-05-PLAN.md
 
 ## Current Position
 
-Phase: 03 (brisbane-data-pipeline) — EXECUTING
-Plan: 3 of 5
+Phase: 03 (brisbane-data-pipeline) — COMPLETE
+Plan: 5 of 5 (all plans complete)
 
 ## Phases Complete
 
@@ -50,14 +51,13 @@ Plan: 3 of 5
 - /region/[slug]/[module] → CoastlineModule live, others stubbed
 - 26 tests passing, TypeScript clean, production build green
 
-### Phase 3 Plan 02: Brisbane Flood Ingestion ✓ (2026-05-22)
+### Phase 3: Brisbane Data Pipeline ✓ (2026-05-22) — ALL 5 PLANS COMPLETE
 
-- .github/workflows/nightly-ingest.yml — 6-job workflow, cron 0 18 * * * (04:00 AEST), workflow_dispatch
-- scripts/ingest/requirements.txt — geopandas, shapely, supabase, wbgapi, pystac-client, planetary-computer
-- scripts/ingest/ingest_bcc_flood.py — BCC FeatureServer paginated, region_slug=brisbane, dynamic field resolution
-- scripts/ingest/ingest_qld_2011.py — QLD 2011 GPKG download, Grantham bbox filter, region_slug=grantham
-- scripts/ingest/ingest_wmip_gauges.py — WMIP live gauge discovery, flood_forecasts upsert source=wmip
-- Auto-fixed: flood_forecasts on_conflict uses latitude,longitude (not location_hash — not in actual migration)
+- 03-01: PostGIS schema (4 tables: flood_zones, flood_forecasts, displacement_records, analysis_cache) + flood_zones_in_bbox RPC
+- 03-02: Brisbane flood ingestion (BCC FeatureServer, QLD 2011 GPKG, WMIP gauges)
+- 03-03: Pacific displacement ingestion (IDMC, World Bank, PDH.stat)
+- 03-04: Flood depth ingestion (Deltares, JRC GloFAS, Open-Meteo)
+- 03-05: 5 Next.js API routes + IntelligencePanel wired to real displaced_count + flood depth
 
 ## Key Technical Decisions
 
@@ -75,6 +75,9 @@ Plan: 3 of 5
 - **flood_forecasts upsert:** on_conflict uses (source, forecast_date, latitude, longitude) — location_hash GENERATED column was NOT added to final 002_postgis_schema.sql migration
 - **GitHub Actions secrets:** SUPABASE_URL + SUPABASE_SERVICE_KEY must be configured before first nightly run
 - **QLD 2011 GPKG URL:** hardcoded resource URL may need updating; documented in ingest_qld_2011.py header
+- **API routes pattern:** createSupabaseAdminClient() + ISR revalidate=3600 on all public read routes
+- **SLUG_TO_COUNTRY mapping:** IntelligencePanel derives ISO2 from slug (lib/regions.ts has no country_code field)
+- **IntelligencePanel score derivation:** displaced > 10k → 85, > 1k → 70, > 100 → 55; depth > 5m → 80, > 3m → 65; FALLBACK_SCORES during loading
 
 ## Environment Variables (Vercel)
 
