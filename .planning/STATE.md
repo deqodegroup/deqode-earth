@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-05-23T23:17:18.420Z"
+last_updated: "2026-05-23T23:26:16.876Z"
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 7
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # State — DEQODE EARTH
@@ -18,15 +18,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-22)
 
 **Core value:** Government researcher opens DEQODE EARTH, clicks any Pacific SIDS, gets verified displacement + coastline + flood risk data in 10 seconds.
-**Current focus:** Phase 04 — compare-view (plan 2 of 2)
-**Last completed:** 04-01 Compare route + layout shell (2026-05-23)
+**Current focus:** Phase 05 — next phase
+**Last completed:** 04-02 Data wiring + 6 data modules (2026-05-24)
 **Hard deadline:** 2 September 2026 (COPRRRA Symposium, Brisbane)
-**Last session:** 2026-05-23T23:17:18.416Z
+**Last session:** 2026-05-23T23:26:16.866Z
 
 ## Current Position
 
-Phase: 04 (compare-view) — EXECUTING
-Plan: 2 of 2
+Phase: 04 (compare-view) — COMPLETE
+Plan: 2 of 2 (all complete)
 
 ## Phases Complete
 
@@ -75,12 +75,14 @@ Plan: 2 of 2
 - **flood_forecasts upsert:** on_conflict uses (source, forecast_date, latitude, longitude) — location_hash GENERATED column was NOT added to final 002_postgis_schema.sql migration
 - **GitHub Actions secrets:** SUPABASE_URL + SUPABASE_SERVICE_KEY must be configured before first nightly run
 - **QLD 2011 GPKG URL:** hardcoded resource URL may need updating; documented in ingest_qld_2011.py header
-- **API routes pattern:** createSupabaseAdminClient() + ISR revalidate=3600 on all public read routes
+- **API routes pattern:** createSupabaseAdminClient() + dynamic='force-dynamic' on all public read routes (revalidate=3600 replaced — caused build-time Supabase init failure)
 - **SLUG_TO_COUNTRY mapping:** IntelligencePanel derives ISO2 from slug (lib/regions.ts has no country_code field)
 - **IntelligencePanel score derivation:** displaced > 10k → 85, > 1k → 70, > 100 → 55; depth > 5m → 80, > 3m → 65; FALLBACK_SCORES during loading
 - **Phase 4 vitest alias:** resolve.alias `@/` → `.` added to vitest.config.ts — compare tests cross-directory imports require this; existing lib tests used relative imports
 - **Phase 4 ComparePanel slot pattern:** children prop undefined in 04-01 (pulse placeholders), 04-02 injects real data modules against stable slot interface
 - **Phase 4 DTM fetcher:** fetchDtmDisplacement returns null on any failure — callers fall through to IDMC displacement_records; DTM_API_KEY is optional env var
+- **Phase 4-02 compare-data.ts:** direct Supabase admin calls in RSC — no internal /api/* HTTP needed; avoids base-URL requirement at build time
+- **Phase 4-02 deriveCompareScore:** shared pure function mirroring IntelligencePanel bands — tested independently, consistent risk display across views
 
 ## Environment Variables (Vercel)
 
