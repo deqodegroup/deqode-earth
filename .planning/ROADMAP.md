@@ -81,11 +81,11 @@ Plans:
   2. Left panel shows SIDS displacement + coastline data; right panel shows Australian flood risk
   3. IOM DTM displacement count visible in comparison header
   4. "Compare" CTA in IntelligencePanel navigates to compare view
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Compare route + layout
-- [ ] 04-02: Data wiring + IOM DTM integration
+- [x] 04-01-PLAN.md — Compare route + layout shell (Wave 0 tests, page, header, divider, mini-map skeleton)
+- [ ] 04-02-PLAN.md — Data wiring + 6 data modules (displacement, trend, coastline, flood risk, flood depth, flood zone)
 
 ### Phase 5: SIDS Data Activation
 **Goal**: All 8 Pacific SIDS have live coastline data with correct algorithm
@@ -138,7 +138,7 @@ Plans:
 | 1. Command Center Shell | 4/4 | Complete | 2026-05-20 |
 | 2. Region Intelligence | 4/4 | Complete | 2026-05-21 |
 | 3. Brisbane & Pacific Data Pipeline | 5/5 | Complete   | 2026-05-22 |
-| 4. Compare View | 0/2 | Not started | - |
+| 4. Compare View | 1/2 | In Progress|  |
 | 5. SIDS Data Activation | 0/2 | Not started | - |
 | 6. Nightly Agent Pipeline | 0/2 | Not started | - |
 | 7. Grantham & COPRRRA Polish | 0/2 | Not started | - |

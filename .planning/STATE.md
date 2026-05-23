@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-05-22T10:41:49.300Z"
+last_updated: "2026-05-23T23:17:18.420Z"
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 5
-  completed_plans: 7
+  total_plans: 7
+  completed_plans: 8
 ---
 
 # State — DEQODE EARTH
@@ -18,15 +18,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-22)
 
 **Core value:** Government researcher opens DEQODE EARTH, clicks any Pacific SIDS, gets verified displacement + coastline + flood risk data in 10 seconds.
-**Current focus:** Phase 03 — brisbane-data-pipeline COMPLETE (all 5 plans done 2026-05-22)
-**Last completed:** 03-05 API routes + IntelligencePanel wiring (2026-05-22)
+**Current focus:** Phase 04 — compare-view (plan 2 of 2)
+**Last completed:** 04-01 Compare route + layout shell (2026-05-23)
 **Hard deadline:** 2 September 2026 (COPRRRA Symposium, Brisbane)
-**Last session:** 2026-05-22T10:20:33Z — Stopped at: Completed 03-05-PLAN.md
+**Last session:** 2026-05-23T23:17:18.416Z
 
 ## Current Position
 
-Phase: 04
-Plan: Not started
+Phase: 04 (compare-view) — EXECUTING
+Plan: 2 of 2
 
 ## Phases Complete
 
@@ -78,6 +78,9 @@ Plan: Not started
 - **API routes pattern:** createSupabaseAdminClient() + ISR revalidate=3600 on all public read routes
 - **SLUG_TO_COUNTRY mapping:** IntelligencePanel derives ISO2 from slug (lib/regions.ts has no country_code field)
 - **IntelligencePanel score derivation:** displaced > 10k → 85, > 1k → 70, > 100 → 55; depth > 5m → 80, > 3m → 65; FALLBACK_SCORES during loading
+- **Phase 4 vitest alias:** resolve.alias `@/` → `.` added to vitest.config.ts — compare tests cross-directory imports require this; existing lib tests used relative imports
+- **Phase 4 ComparePanel slot pattern:** children prop undefined in 04-01 (pulse placeholders), 04-02 injects real data modules against stable slot interface
+- **Phase 4 DTM fetcher:** fetchDtmDisplacement returns null on any failure — callers fall through to IDMC displacement_records; DTM_API_KEY is optional env var
 
 ## Environment Variables (Vercel)
 
