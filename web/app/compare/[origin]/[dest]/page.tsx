@@ -2,6 +2,10 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getRegion, REGION_LIST } from "@/lib/regions";
 import { fetchDtmDisplacement, SLUG_TO_ISO3 } from "@/lib/dtm";
+import {
+  fetchDisplacementForRegion,
+  fetchFloodDepthForRegion,
+} from "@/lib/compare-data";
 import { CommandBar } from "@/components/command/CommandBar";
 import { StatusStrip } from "@/components/command/StatusStrip";
 import { CompareLayout } from "@/components/compare/CompareLayout";
@@ -37,17 +41,17 @@ export default async function ComparePage({ params }: Props) {
   const destRegion = getRegion(dest);
   if (!originRegion || !destRegion) notFound();
 
-  // Plan 04-01: DTM fetch + fallback wired here. Plan 04-02 adds the
-  // per-panel data module fetches (displacement, flood depth) into the
-  // ComparePanel children prop.
   const iso3 = SLUG_TO_ISO3[originRegion.slug];
-  const dtm = iso3 ? await fetchDtmDisplacement(iso3) : null;
+
+  // Parallel fetch — see RESEARCH.md "Pattern 1: Server Component with Parallel Data Fetching"
+  const [dtm, originDisplacement, destFloodDepth] = await Promise.all([
+    iso3 ? fetchDtmDisplacement(iso3) : Promise.resolve(null),
+    fetchDisplacementForRegion(originRegion),
+    fetchFloodDepthForRegion(destRegion),
+  ]);
 
   return (
-    <div
-      className="flex flex-col"
-      style={{ minHeight: "100dvh" }}
-    >
+    <div className="flex flex-col" style={{ minHeight: "100dvh" }}>
       <CommandBar />
       <main
         className="flex-1 flex flex-col overflow-hidden"
@@ -60,7 +64,8 @@ export default async function ComparePage({ params }: Props) {
           origin={originRegion}
           dest={destRegion}
           dtm={dtm}
-          fallbackDisplaced={null}
+          originDisplacement={originDisplacement}
+          destFloodDepth={destFloodDepth}
         />
       </main>
       <StatusStrip demoMode />
