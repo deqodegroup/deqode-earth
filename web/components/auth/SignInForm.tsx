@@ -1,5 +1,5 @@
 'use client'
-import { useActionState, useState } from 'react'
+import { useActionState, useState, useEffect } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { signInAction } from '@/lib/auth/actions'
 
@@ -7,6 +7,14 @@ interface Props { next?: string }
 
 export function SignInForm({ next = '/dashboard' }: Props) {
   const [state, dispatch, pending] = useActionState(signInAction, { error: null })
+
+  useEffect(() => {
+    if (state.redirectTo) {
+      // Hard navigation — bypasses the Next.js RSC client cache so the
+      // freshly-set session cookies are visible to middleware on first load.
+      window.location.href = state.redirectTo
+    }
+  }, [state.redirectTo])
   const [mode, setMode] = useState<'signin' | 'forgot' | 'sent'>('signin')
   const [resetEmail, setResetEmail] = useState('')
   const [resetLoading, setResetLoading] = useState(false)

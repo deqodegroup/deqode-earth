@@ -1,11 +1,10 @@
 'use server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 
 export async function signInAction(
-  _prev: { error: string | null },
+  _prev: { error: string | null; redirectTo?: string },
   formData: FormData
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; redirectTo?: string }> {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const next = (formData.get('next') as string) || '/dashboard'
@@ -17,7 +16,13 @@ export async function signInAction(
     return { error: 'Invalid email or password.' }
   }
 
-  redirect(next)
+  // Return the redirect target instead of calling redirect() here.
+  // redirect() from a Server Action triggers a soft (RSC) navigation which
+  // can serve a stale client-side cache entry for /dashboard (from when the
+  // user visited unauthenticated). window.location.href in the client forces
+  // a full page load, bypassing the RSC cache and ensuring middleware sees
+  // the freshly-set session cookies.
+  return { error: null, redirectTo: next }
 }
 
 export async function resetPasswordAction(
