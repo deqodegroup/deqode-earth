@@ -43,10 +43,8 @@ function Metric({
       className="rounded-lg border border-[var(--border)] bg-surface p-5 relative overflow-hidden"
       style={{ borderLeftColor: accentColor, borderLeftWidth: "2px" }}
     >
-      {/* Subtle background tint from accent */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
            style={{ background: accentColor }} />
-
       <div className="relative">
         <div className="font-mono text-[0.6rem] tracking-[0.18em] uppercase text-[var(--text-dim)] mb-3">
           {label}
@@ -61,6 +59,95 @@ function Metric({
           <div className="font-mono text-[0.6rem] tracking-[0.1em] uppercase text-[var(--text-dim)] mt-2">
             {sub}
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SLRBar({ label, pct, accent }: { label: string; pct: number; accent: string }) {
+  const clamped = Math.max(0, Math.min(100, pct));
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-baseline justify-between">
+        <span className="font-mono text-[0.6rem] tracking-[0.12em] uppercase text-[var(--text-dim)]">
+          {label}
+        </span>
+        <span className="font-mono text-sm text-[var(--text)]">
+          {clamped.toFixed(1)}<span className="text-[var(--text-dim)] ml-1 text-[0.65rem]">%</span>
+        </span>
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-surface2 overflow-hidden">
+        <div
+          className="h-full rounded-full transition-[width] duration-700 ease-out"
+          style={{ width: `${clamped}%`, background: accent }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SLRExposureCard({
+  slr_1m,
+  slr_2m,
+  slr_5m,
+}: {
+  slr_1m: number;
+  slr_2m: number;
+  slr_5m: number;
+}) {
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-surface p-5 relative overflow-hidden"
+         style={{ borderLeftColor: "#E05B4B", borderLeftWidth: "2px" }}>
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+           style={{ background: "#E05B4B" }} />
+      <div className="relative space-y-4">
+        <div>
+          <div className="font-mono text-[0.6rem] tracking-[0.18em] uppercase text-[var(--text-dim)]">
+            Sea-Level Rise Exposure
+          </div>
+          <div className="font-mono text-[0.55rem] tracking-[0.1em] uppercase text-[var(--text-dim)] opacity-70 mt-1">
+            Indicative — SRTM 30 m DEM
+          </div>
+        </div>
+        <div className="space-y-3">
+          <SLRBar label="Land below 1m" pct={slr_1m} accent="#E05B4B" />
+          <SLRBar label="Land below 2m" pct={slr_2m} accent="#D4A55A" />
+          <SLRBar label="Land below 5m" pct={slr_5m} accent="#4A6680" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CMIP6Card({ delta }: { delta: number | null | undefined }) {
+  const hasData = typeof delta === "number";
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-surface p-5 relative overflow-hidden"
+         style={{ borderLeftColor: "#D4A55A", borderLeftWidth: "2px" }}>
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+           style={{ background: "#D4A55A" }} />
+      <div className="relative">
+        <div className="font-mono text-[0.6rem] tracking-[0.18em] uppercase text-[var(--text-dim)] mb-3">
+          CMIP6 Temperature Δ
+        </div>
+        {hasData ? (
+          <>
+            <div className="font-display text-4xl leading-none text-[#D4A55A]">
+              +{(delta as number).toFixed(1)}
+              <span className="font-mono text-sm text-[var(--text-dim)] ml-1.5 font-normal">°C</span>
+            </div>
+            <div className="font-mono text-[0.6rem] tracking-[0.1em] uppercase text-[var(--text-dim)] mt-2">
+              SSP585 · 2090–2100 vs 2020–2030
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="font-display text-2xl leading-none text-[var(--text-dim)]">No data</div>
+            <div className="font-mono text-[0.6rem] tracking-[0.1em] uppercase text-[var(--text-dim)] mt-2">
+              SSP585 grid does not cover this AOI
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -106,13 +193,39 @@ export function MetricCards({ data }: { data: CoastlineMetrics }) {
     },
   ];
 
+  const showSLR   = typeof data.slr_pct_1m === "number"
+                 && typeof data.slr_pct_2m === "number"
+                 && typeof data.slr_pct_5m === "number";
+  const showCMIP6 = typeof data.cmip6_temp_delta_c === "number" || data.cmip6_temp_delta_c === null;
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {metrics.map((m, i) => (
-        <div key={m.label} className="animate-float-up" style={{ animationDelay: `${i * 0.08}s` }}>
-          <Metric {...m} />
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {metrics.map((m, i) => (
+          <div key={m.label} className="animate-float-up" style={{ animationDelay: `${i * 0.08}s` }}>
+            <Metric {...m} />
+          </div>
+        ))}
+      </div>
+
+      {(showSLR || showCMIP6) && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {showSLR && (
+            <div className="md:col-span-2 animate-float-up" style={{ animationDelay: "0.4s" }}>
+              <SLRExposureCard
+                slr_1m={data.slr_pct_1m as number}
+                slr_2m={data.slr_pct_2m as number}
+                slr_5m={data.slr_pct_5m as number}
+              />
+            </div>
+          )}
+          {showCMIP6 && (
+            <div className="animate-float-up" style={{ animationDelay: "0.48s" }}>
+              <CMIP6Card delta={data.cmip6_temp_delta_c} />
+            </div>
+          )}
         </div>
-      ))}
+      )}
     </div>
   );
 }
