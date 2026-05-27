@@ -45,7 +45,7 @@ export default function CommandCenter() {
         </Suspense>
       </main>
 
-      <StatusStrip demoMode={false} />
+      <StatusStrip demoMode />
     </div>
   );
 }

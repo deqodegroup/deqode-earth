@@ -200,7 +200,7 @@ export function IntelligencePanel() {
         </div>
       </div>
 
-      {/* Compare CTA */}
+      {/* Compare CTA + Case Study CTA */}
       <div className="p-4 mt-auto">
         <Link
           href={`/compare/${region.slug}/brisbane`}
@@ -210,6 +210,16 @@ export function IntelligencePanel() {
         >
           Compare with Brisbane →
         </Link>
+        {region.regionType === "managed_retreat" && (
+          <Link
+            href={`/cases/${region.slug}`}
+            className="block w-full font-mono text-[0.6rem] tracking-[0.14em] uppercase
+                       text-center py-2.5 rounded border border-[var(--gold)]/40 bg-[var(--gold)]/5
+                       text-[var(--gold)] hover:bg-[var(--gold)]/10 transition-colors duration-150 mt-2"
+          >
+            View Case Study →
+          </Link>
+        )}
       </div>
     </aside>
   );

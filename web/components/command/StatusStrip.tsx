@@ -1,9 +1,9 @@
 "use client";
 
-import { LOCATIONS_LIST } from "@/lib/locations";
+import { REGION_LIST } from "@/lib/regions";
 
 export function StatusStrip({ demoMode = false }: { demoMode?: boolean }) {
-  const liveCount = LOCATIONS_LIST.filter((l) => l.isLive).length;
+  const liveCount = REGION_LIST.filter((r) => r.isLive).length;
 
   return (
     <footer
