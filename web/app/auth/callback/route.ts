@@ -40,5 +40,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/auth/accept`)
   }
 
+  // For password recovery, redirect to the reset form
+  const isRecovery = searchParams.get('type') === 'recovery'
+  if (isRecovery) {
+    return NextResponse.redirect(`${origin}/auth/reset`)
+  }
+
   return NextResponse.redirect(`${origin}${next}`)
 }
