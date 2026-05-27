@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { Region } from "@/lib/regions";
+import { useFlyTo } from "@/components/map/MapContext";
 
 const RISK_DOT: Record<string, string> = {
   CRITICAL: "bg-coral",
@@ -15,11 +16,13 @@ export function RegionRowClient({ region }: { region: Region }) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const selected = searchParams.get("region") === region.slug;
+  const flyTo = useFlyTo();
 
   function handleSelect() {
     const params = new URLSearchParams(searchParams.toString());
     params.set("region", region.slug);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    flyTo(region.center, region.zoom);
   }
 
   return (
