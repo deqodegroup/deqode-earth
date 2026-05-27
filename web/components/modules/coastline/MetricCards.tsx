@@ -10,6 +10,12 @@ export interface CoastlineMetrics {
   period_start:   string;
   period_end:     string;
   mapImageUrl:    string;
+  // New optional fields for Phase 5 (MNDWI+Otsu algorithm + SLR + CMIP6)
+  algorithm?:           string;
+  slr_pct_1m?:          number | null;
+  slr_pct_2m?:          number | null;
+  slr_pct_5m?:          number | null;
+  cmip6_temp_delta_c?:  number | null;
 }
 
 function Metric({

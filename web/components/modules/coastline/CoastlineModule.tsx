@@ -194,7 +194,8 @@ export function CoastlineModule({ loc }: { loc: Location }) {
               { label: "Current",  value: "2024" },
               { label: "Sensor",   value: "Sentinel-2" },
               { label: "Scale",    value: "30 m" },
-              { label: "Index",    value: "NDWI" },
+              { label: "Index",    value: state.status === "done" && state.data.algorithm ? state.data.algorithm : "MNDWI+Otsu" },
+              { label: "Season",   value: "Dry (May-Oct)" },
             ].map(({ label, value }) => (
               <div key={label}>
                 <div className="font-mono text-[0.55rem] tracking-[0.2em] uppercase text-[var(--text-dim)]">{label}</div>
@@ -272,12 +273,14 @@ export function CoastlineModule({ loc }: { loc: Location }) {
           <div className="border-t border-[var(--border)]">
             {[
               ["Sensor",       "Sentinel-2 MSI (ESA Copernicus)"],
-              ["Bands",        "B3 Green + B8 NIR — NDWI water index"],
-              ["Cloud filter", "< 10% cloud cover per scene"],
-              ["Baseline",     "2019 — annual median composite"],
-              ["Current",      "2024 — annual median composite"],
-              ["Resolution",   "30 m analysis scale"],
-              ["Water index",  "NDWI > 0.1 = water  ·  ≤ 0.1 = land"],
+              ["Bands",        "B3 Green + B11 SWIR1 — MNDWI water index"],
+              ["Cloud filter", "< 15% cloud cover per scene"],
+              ["Season",       "Dry season May-Oct (calendarRange filter)"],
+              ["Baseline",     "2019 — dry-season median composite"],
+              ["Current",      "2024 — dry-season median composite"],
+              ["Resolution",   "30 m analysis scale (10 m for narrow atolls)"],
+              ["Water index",  "MNDWI = (B3 - B11) / (B3 + B11); Otsu adaptive threshold"],
+              ["Min object",   "Connected-components 0.5 ha min (5000 m²)"],
               ["Platform",     "Google Earth Engine"],
               ["Territory",    `${loc.name} · ${loc.coords}`],
               ["EEZ",          loc.eez],
@@ -370,7 +373,7 @@ export function CoastlineModule({ loc }: { loc: Location }) {
                 <div className="bg-[#0D1B2A]/75 backdrop-blur-sm rounded px-2.5 py-1.5 flex items-center gap-2 border border-white/8">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#4CB9C0] animate-pulse" />
                   <span className="font-mono text-[0.58rem] tracking-[0.1em] uppercase text-[var(--text-dim)]">
-                    S2 · NDWI · 30 m · GEE · {state.data.period_start}–{state.data.period_end}
+                    S2 · {state.data.algorithm ?? "MNDWI+Otsu"} · 30 m · GEE · {state.data.period_start}–{state.data.period_end}
                   </span>
                 </div>
               </div>
