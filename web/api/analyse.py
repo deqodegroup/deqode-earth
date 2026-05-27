@@ -20,11 +20,11 @@ LOCATIONS = {
     "niue":             {"bbox": [-169.9647, -19.155, -169.78, -18.955], "live": True,  "scale": 30, "min_area_m2": 5000},
     "palau":            {"bbox": [134.4, 7.0, 134.7, 7.4],               "live": True,  "scale": 30, "min_area_m2": 5000},
     "fiji":             {"bbox": [177.2, -18.2, 178.0, -17.5],           "live": True,  "scale": 30, "min_area_m2": 5000},
-    "tuvalu":           {"bbox": [179.0, -8.7, 179.3, -8.4],             "live": False, "scale": 10, "min_area_m2": 1000},
-    "kiribati":         {"bbox": [172.9, 1.3, 173.1, 1.5],               "live": False, "scale": 10, "min_area_m2": 1000},
-    "marshall-islands": {"bbox": [171.0, 7.0, 171.4, 7.2],               "live": False, "scale": 10, "min_area_m2": 1000},
-    "vanuatu":          {"bbox": [168.1, -17.8, 168.5, -17.5],           "live": False, "scale": 30, "min_area_m2": 5000},
-    "solomon-islands":  {"bbox": [159.9, -9.5, 160.2, -9.3],             "live": False, "scale": 30, "min_area_m2": 5000},
+    "tuvalu":           {"bbox": [179.0, -8.7, 179.3, -8.4],             "live": True,  "scale": 10, "min_area_m2": 1000},
+    "kiribati":         {"bbox": [172.9, 1.3, 173.1, 1.5],               "live": True,  "scale": 10, "min_area_m2": 1000},
+    "marshall-islands": {"bbox": [171.0, 7.0, 171.4, 7.2],               "live": True,  "scale": 10, "min_area_m2": 1000},
+    "vanuatu":          {"bbox": [168.1, -17.8, 168.5, -17.5],           "live": True,  "scale": 30, "min_area_m2": 5000},
+    "solomon-islands":  {"bbox": [159.9, -9.5, 160.2, -9.3],             "live": True,  "scale": 30, "min_area_m2": 5000},
 }
 
 BASELINE_YEAR = 2019
