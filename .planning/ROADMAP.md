@@ -9,7 +9,7 @@ DEQODE EARTH ships as a live intelligence platform for the COPRRRA Symposium (2 
 - [x] **Phase 1: Command Center Shell** — Full-viewport map, CommandBar, StatusStrip, security headers, OKLCH token system
 - [x] **Phase 2: Region Intelligence** — RegionTree, IntelligencePanel, RiskScoreHUD, CoastlineModule, 10 regions
 - [x] **Phase 3: Brisbane & Pacific Data Pipeline** — Supabase PostGIS schema, GitHub Actions ingestion, Brisbane flood data, Pacific displacement data, flood depth intelligence, Next.js API routes (completed 2026-05-22)
-- [x] **Phase 4: Compare View** — /compare/[origin]/[dest] side-by-side SIDS vs Australia, COPRRRA centrepiece (completed 2026-05-23)
+- [x] **Phase 4: Compare View** — /compare/[origin]/[dest] side-by-side SIDS vs Australia, COPRRRA centrepiece (completed 2026-05-23)
 - [x] **Phase 5: SIDS Data Activation** — MNDWI coastline algorithm fix, live data for all 8 SIDS, SLR thresholds, climate projections (completed 2026-05-27)
 - [ ] **Phase 6: Nightly Agent Pipeline** — Automated GEE analysis, IOM DTM displacement flows, data freshness
 - [ ] **Phase 7: Grantham & COPRRRA Polish** — /cases/grantham, demo flow tested, performance optimised
@@ -125,11 +125,12 @@ Plans:
   2. Full demo flow (open → Tuvalu → Brisbane → Compare → Grantham) completes in < 6 minutes
   3. All panels responsive, no layout breaks at 1280px+
   4. COPRRRA demo mode badge active in StatusStrip
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 07-01: Grantham case study page
-- [ ] 07-02: Demo flow polish + performance
+- [ ] 07-01-PLAN.md — /cases/grantham static case study page + GranthamFloodMap component
+- [ ] 07-02-PLAN.md — Demo flow polish: map flyTo wiring, StatusStrip count fix, 5 module stubs replaced, IntelligencePanel Grantham CTA
+- [ ] 07-03-PLAN.md — Demo checklist (/demo route), AGENTS.md + STATE.md updates
 
 ## Progress
 
@@ -141,4 +142,4 @@ Plans:
 | 4. Compare View | 2/2 | Complete   | 2026-05-23 |
 | 5. SIDS Data Activation | 2/2 | Complete | 2026-05-27 |
 | 6. Nightly Agent Pipeline | 0/2 | Not started | - |
-| 7. Grantham & COPRRRA Polish | 0/2 | Not started | - |
+| 7. Grantham & COPRRRA Polish | 0/3 | Planned | - |
