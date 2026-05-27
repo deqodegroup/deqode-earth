@@ -3,7 +3,14 @@ import { getRegion, REGION_LIST } from "@/lib/regions";
 import { CommandBar } from "@/components/command/CommandBar";
 import { StatusStrip } from "@/components/command/StatusStrip";
 import { CoastlineModule } from "@/components/modules/coastline/CoastlineModule";
+import { OceanModule } from "@/components/modules/OceanModule";
+import { ReefModule } from "@/components/modules/ReefModule";
+import { LandModule } from "@/components/modules/LandModule";
+import { ClimateModule } from "@/components/modules/ClimateModule";
+import { DisplacementModule } from "@/components/modules/DisplacementModule";
 import type { Metadata } from "next";
+
+export const revalidate = 86400;
 
 const VALID_MODULES = ["coastline", "ocean", "reef", "land", "climate", "displacement"];
 
@@ -54,16 +61,11 @@ export default async function ModulePage({ params }: Props) {
             </p>
           </div>
         )}
-        {mod !== "coastline" && (
-          <div className="max-w-2xl mx-auto px-16 py-20 text-center">
-            <div className="font-mono text-[0.65rem] tracking-[0.2em] uppercase text-[var(--text-dim)] mb-4">
-              Module In Development
-            </div>
-            <h1 className="font-display text-3xl text-[var(--text)]">
-              {region.name} · {mod.charAt(0).toUpperCase() + mod.slice(1)} Intelligence
-            </h1>
-          </div>
-        )}
+        {mod === "ocean" && <OceanModule region={region} />}
+        {mod === "reef" && <ReefModule region={region} />}
+        {mod === "land" && <LandModule region={region} />}
+        {mod === "climate" && <ClimateModule region={region} />}
+        {mod === "displacement" && <DisplacementModule region={region} />}
       </main>
       <StatusStrip />
     </div>
