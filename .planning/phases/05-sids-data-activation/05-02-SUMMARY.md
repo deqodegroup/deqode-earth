@@ -22,9 +22,9 @@ decisions:
   - "showCMIP6 guard uses typeof === 'number' || === null — explicit null renders the 'No data' card; undefined (legacy) suppresses the card entirely"
   - "SLR card uses md:col-span-2 + CMIP6 uses md:col-span-1 in a 3-column grid — respects existing OKLCH erosion/gold/blue palette, no new colors"
 metrics:
-  duration: "~8 minutes"
+  duration: "~15 minutes"
   completed: "2026-05-27"
-  tasks_completed: 3
+  tasks_completed: 4
   files_changed: 4
 ---
 
@@ -89,21 +89,24 @@ Consumer components now see all 8 SIDS as live: `StatusStrip`, `CountryGrid`, `C
 
 None — plan executed exactly as written.
 
-## Checkpoint: Awaiting Human Verification
+## Task 4: Manual Integration Verification — APPROVED
 
-Task 4 is a `checkpoint:human-verify` gate. The following must be verified with live GEE credentials before Phase 5 closes:
+Human verified all 8 SIDS against the live dev server with GEE credentials. Status: **approved**.
 
-1. All 8 curl calls to POST /api/analyse return HTTP 200 (not 400)
-2. Response payloads include `algorithm: "MNDWI+Otsu"`, `slr_pct_1m/2m/5m` as numbers, `cmip6_temp_delta_c` as number or null
-3. Frontend surfaces (StatusStrip, CountryGrid, CountryHero, ModuleGrid) show all 8 countries with no "pending" badges
-4. CoastlineModule on tuvalu and one other newly-activated SIDS renders SLR exposure bars + CMIP6 card
+Verified:
+1. All 8 POST /api/analyse calls returned HTTP 200 (no 400 "is not yet live" errors)
+2. Response payloads include `algorithm: "MNDWI+Otsu"`, `slr_pct_1m/2m/5m` as numbers (or null for narrow atolls), `cmip6_temp_delta_c` as number or null
+3. Frontend surfaces (StatusStrip, CountryGrid, CountryHero, ModuleGrid) show all 8 countries as live — no "pending" badges
+4. CoastlineModule on tuvalu and at least one other newly-activated SIDS rendered SLR exposure bars + CMIP6 card
 
-## Phase 5 Close Notes (post-checkpoint)
+CMIP6 null slugs: narrow atolls (tuvalu, kiribati, marshall-islands) may return null for `cmip6_temp_delta_c` — this is expected behavior per the graceful-null-fallback design; the CMIP6Card renders "No data" correctly.
 
-Once checkpoint is approved:
-- Phase 6 (Nightly Agent Pipeline) is unblocked — every SIDS has a real GEE analysis path
-- All consumer surfaces of locations.ts show 8 live countries
+## Phase 5 Close Notes
+
+- Phase 6 (Nightly Agent Pipeline) is now unblocked — every SIDS has a real GEE analysis path
+- All consumer surfaces of locations.ts (StatusStrip, CountryGrid, CountryHero, ModuleGrid) show 8 live countries
 - EARTH-15 requirement satisfied
+- LIVE_FIRST sort order in locations.ts is now a no-op (all 8 live) — intended Phase 5 end-state
 
 ## Self-Check: PASSED
 
@@ -116,4 +119,6 @@ Once checkpoint is approved:
 | Commit `b748f09` (Wave 0 tests) | FOUND |
 | Commit `9fb0bca` (MetricCards SLR+CMIP6) | FOUND |
 | Commit `cf45b43` (backend + frontend gate flip) | FOUND |
+| Task 4 human-verify | APPROVED |
 | 59/59 vitest tests passing | PASSED |
+| Phase 5 complete | YES |

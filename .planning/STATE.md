@@ -18,15 +18,26 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-22)
 
 **Core value:** Government researcher opens DEQODE EARTH, clicks any Pacific SIDS, gets verified displacement + coastline + flood risk data in 10 seconds.
-**Current focus:** Phase 05 — sids-data-activation
-**Last completed:** 05-01 MNDWI+Otsu coastline algorithm fix (2026-05-27)
+**Current focus:** Phase 06 — nightly-agent-pipeline
+**Last completed:** 05-02 All 8 SIDS activated + SLR/CMIP6 cards (2026-05-27)
 **Hard deadline:** 2 September 2026 (COPRRRA Symposium, Brisbane)
-**Last session:** 2026-05-27T07:39:09.701Z
+**Last session:** 2026-05-27 (Phase 5 complete — 05-02 approved)
 
 ## Current Position
 
-Phase: 05 (sids-data-activation) — EXECUTING
-Plan: 2 of 2
+Phase: 06 (nightly-agent-pipeline) — NEXT
+Plan: 1 of 2
+
+## Phase 05 Complete ✓ (2026-05-27)
+
+### Phase 5: SIDS Data Activation ✓ (2026-05-27)
+
+- MNDWI+Otsu algorithm replaces NDWI>0 for all 8 SIDS coastline analysis (05-01)
+- All 8 SIDS flipped `live: True` in analyse.py backend gate (05-02)
+- All 8 SIDS flipped `isLive: true` in web/lib/locations.ts frontend display gate (05-02)
+- MetricCards SLRExposureCard (3-bar 1m/2m/5m) + CMIP6Card with null fallback (05-02)
+- Wave 0 TDD tests: MetricCards.test.ts (8 tests GREEN), coastline-metrics.test.ts (8 tests GREEN)
+- Human-verify checkpoint approved: all 8 slugs return 200 with MNDWI+Otsu + SLR + CMIP6 fields
 
 ## Phases Complete
 
@@ -70,6 +81,8 @@ Plan: 2 of 2
 - **Ingestion:** GitHub Actions nightly (Phase 3+) — NOT Cloud Run
 - **API serving:** Next.js API routes — NOT Flask/FastAPI
 - **Coastline (Phase 5):** MNDWI+Otsu+dry-season+connected-components — replaced NDWI > 0; selfMask() before connectedPixelCount guards Pitfall 1; graceful null on CMIP6 sparse grid; per-region scale=10+min_area=1000 for narrow atolls
+- **Phase 5 gate flip:** Both analyse.py backend gate (live: True) and locations.ts frontend gate (isLive: true) flipped atomically for 5 SIDS — avoids split state where backend is live but UI shows pending
+- **CMIP6 null handling:** showCMIP6 guard uses `typeof === 'number' || === null` — explicit null renders "No data" card; undefined (legacy) suppresses card entirely
 - **Phase 3 spatial queries:** flood_zones_in_bbox as Postgres RPC function for ST_Intersects bbox queries — cleaner than inline SQL in API routes
 - **Phase 3 RLS pattern:** service_role write on all 4 PostGIS tables — ingestion scripts use service key, not user auth tokens
 - **flood_forecasts upsert:** on_conflict uses (source, forecast_date, latitude, longitude) — location_hash GENERATED column was NOT added to final 002_postgis_schema.sql migration

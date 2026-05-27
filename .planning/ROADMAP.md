@@ -10,7 +10,7 @@ DEQODE EARTH ships as a live intelligence platform for the COPRRRA Symposium (2 
 - [x] **Phase 2: Region Intelligence** — RegionTree, IntelligencePanel, RiskScoreHUD, CoastlineModule, 10 regions
 - [x] **Phase 3: Brisbane & Pacific Data Pipeline** — Supabase PostGIS schema, GitHub Actions ingestion, Brisbane flood data, Pacific displacement data, flood depth intelligence, Next.js API routes (completed 2026-05-22)
 - [x] **Phase 4: Compare View** — /compare/[origin]/[dest] side-by-side SIDS vs Australia, COPRRRA centrepiece (completed 2026-05-23)
-- [ ] **Phase 5: SIDS Data Activation** — MNDWI coastline algorithm fix, live data for all 8 SIDS, SLR thresholds, climate projections
+- [x] **Phase 5: SIDS Data Activation** — MNDWI coastline algorithm fix, live data for all 8 SIDS, SLR thresholds, climate projections (completed 2026-05-27)
 - [ ] **Phase 6: Nightly Agent Pipeline** — Automated GEE analysis, IOM DTM displacement flows, data freshness
 - [ ] **Phase 7: Grantham & COPRRRA Polish** — /cases/grantham, demo flow tested, performance optimised
 
@@ -100,7 +100,7 @@ Plans:
 
 Plans:
 - [x] 05-01: MNDWI coastline algorithm fix
-- [ ] 05-02: SIDS data activation + SLR thresholds
+- [x] 05-02: SIDS data activation + SLR thresholds
 
 ### Phase 6: Nightly Agent Pipeline
 **Goal**: Platform self-refreshes data nightly; displacement flows visualised
@@ -139,6 +139,6 @@ Plans:
 | 2. Region Intelligence | 4/4 | Complete | 2026-05-21 |
 | 3. Brisbane & Pacific Data Pipeline | 5/5 | Complete   | 2026-05-22 |
 | 4. Compare View | 2/2 | Complete   | 2026-05-23 |
-| 5. SIDS Data Activation | 0/2 | Not started | - |
+| 5. SIDS Data Activation | 2/2 | Complete | 2026-05-27 |
 | 6. Nightly Agent Pipeline | 0/2 | Not started | - |
 | 7. Grantham & COPRRRA Polish | 0/2 | Not started | - |

@@ -74,7 +74,7 @@ Replace NDWI > 0 with MNDWI + Otsu threshold + dry-season composites (May-Oct) +
 
 ### EARTH-15: SIDS Data Activation
 Live coastline data for all 8 Pacific SIDS regions. SLR exposure thresholds via GEE SRTM. NASA NEX-GDDP-CMIP6 climate projections SSP585.
-**Status:** Active
+**Status:** ✓ Validated (Phase 5 — 05-02)
 **Phase:** 5
 
 ### EARTH-16: Nightly Agent Pipeline
