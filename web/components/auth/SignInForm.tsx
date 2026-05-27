@@ -1,43 +1,29 @@
 'use client'
-import { useState } from 'react'
+import { useActionState, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { signInAction } from '@/lib/auth/actions'
 
 interface Props { next?: string }
 
 export function SignInForm({ next = '/dashboard' }: Props) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [resetSent, setResetSent] = useState(false)
+  const [state, dispatch, pending] = useActionState(signInAction, { error: null })
+  const [mode, setMode] = useState<'signin' | 'forgot' | 'sent'>('signin')
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
 
-  async function handleSignIn(e: React.FormEvent) {
+  async function handleForgotPassword(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
-    setError(null)
+    if (!resetEmail) return
+    setResetLoading(true)
     const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setError('Invalid email or password.')
-      setLoading(false)
-      return
-    }
-    window.location.href = next
-  }
-
-  async function handleForgotPassword() {
-    if (!email) { setError('Enter your email address first.'); return }
-    setLoading(true)
-    setError(null)
-    const supabase = createSupabaseBrowserClient()
-    await supabase.auth.resetPasswordForEmail(email, {
+    await supabase.auth.resetPasswordForEmail(resetEmail, {
       redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset`,
     })
-    setResetSent(true)
-    setLoading(false)
+    setMode('sent')
+    setResetLoading(false)
   }
 
-  if (resetSent) {
+  if (mode === 'sent') {
     return (
       <div className="text-center flex flex-col gap-4">
         <div>
@@ -50,7 +36,7 @@ export function SignInForm({ next = '/dashboard' }: Props) {
         </div>
         <button
           type="button"
-          onClick={() => setResetSent(false)}
+          onClick={() => setMode('signin')}
           className="font-mono text-[0.6rem] tracking-[0.1em] uppercase text-[var(--text-dim)] hover:text-teal transition-colors"
         >
           ← Back to sign in
@@ -59,8 +45,60 @@ export function SignInForm({ next = '/dashboard' }: Props) {
     )
   }
 
+  if (mode === 'forgot') {
+    return (
+      <form onSubmit={handleForgotPassword} className="flex flex-col gap-5">
+        <div>
+          <div className="font-display text-xl text-[var(--text)] mb-1">Reset password</div>
+          <div className="font-sans text-xs text-[var(--text-dim)]">
+            Enter your email to receive a reset link.
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="reset-email" className="font-mono text-[0.6rem] tracking-[0.15em] uppercase text-[var(--text-dim)]">
+            Email
+          </label>
+          <input
+            id="reset-email"
+            type="email"
+            required
+            value={resetEmail}
+            onChange={e => setResetEmail(e.target.value)}
+            autoComplete="email"
+            className="bg-ocean border border-[var(--border)] rounded px-3 py-2.5
+                       font-sans text-sm text-[var(--text)] placeholder-[var(--text-dim)]
+                       focus:outline-none focus:border-teal/60 transition-colors"
+            placeholder="you@government.gov"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={resetLoading}
+          className="w-full bg-teal text-ocean font-mono text-[0.7rem] tracking-[0.15em] uppercase
+                     py-3 rounded hover:bg-teal/90 transition-colors disabled:opacity-50"
+        >
+          {resetLoading ? 'Sending…' : 'Send Reset Link'}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMode('signin')}
+          disabled={resetLoading}
+          className="font-mono text-[0.6rem] tracking-[0.1em] uppercase text-[var(--text-dim)]
+                     hover:text-teal transition-colors text-center disabled:opacity-50"
+        >
+          ← Back to sign in
+        </button>
+      </form>
+    )
+  }
+
   return (
-    <form onSubmit={handleSignIn} className="flex flex-col gap-5">
+    <form action={dispatch} className="flex flex-col gap-5">
+      <input type="hidden" name="next" value={next} />
+
       <div>
         <div className="font-display text-xl text-[var(--text)] mb-1">
           Secure Access
@@ -70,9 +108,9 @@ export function SignInForm({ next = '/dashboard' }: Props) {
         </div>
       </div>
 
-      {error && (
+      {state.error && (
         <div className="font-mono text-[0.65rem] tracking-[0.1em] text-coral border border-coral/30 bg-coral/5 rounded px-3 py-2">
-          {error}
+          {state.error}
         </div>
       )}
 
@@ -82,11 +120,10 @@ export function SignInForm({ next = '/dashboard' }: Props) {
         </label>
         <input
           id="email"
+          name="email"
           type="email"
           required
           autoComplete="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
           className="bg-ocean border border-[var(--border)] rounded px-3 py-2.5
                      font-sans text-sm text-[var(--text)] placeholder-[var(--text-dim)]
                      focus:outline-none focus:border-teal/60 transition-colors"
@@ -100,11 +137,10 @@ export function SignInForm({ next = '/dashboard' }: Props) {
         </label>
         <input
           id="password"
+          name="password"
           type="password"
           required
           autoComplete="current-password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
           className="bg-ocean border border-[var(--border)] rounded px-3 py-2.5
                      font-sans text-sm text-[var(--text)] placeholder-[var(--text-dim)]
                      focus:outline-none focus:border-teal/60 transition-colors"
@@ -114,17 +150,17 @@ export function SignInForm({ next = '/dashboard' }: Props) {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={pending}
         className="w-full bg-teal text-ocean font-mono text-[0.7rem] tracking-[0.15em] uppercase
                    py-3 rounded hover:bg-teal/90 transition-colors disabled:opacity-50"
       >
-        {loading ? 'Signing in…' : 'Sign In'}
+        {pending ? 'Signing in…' : 'Sign In'}
       </button>
 
       <button
         type="button"
-        onClick={handleForgotPassword}
-        disabled={loading}
+        onClick={() => setMode('forgot')}
+        disabled={pending}
         className="font-mono text-[0.6rem] tracking-[0.1em] uppercase text-[var(--text-dim)]
                    hover:text-teal transition-colors text-center disabled:opacity-50"
       >
