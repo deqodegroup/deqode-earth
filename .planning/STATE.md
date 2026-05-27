@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-05-27T09:12:43.976Z"
+last_updated: "2026-05-27T09:47:49.925Z"
 progress:
   total_phases: 7
   completed_phases: 3
-  total_plans: 9
+  total_plans: 12
   completed_plans: 11
 ---
 
@@ -18,15 +18,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-22)
 
 **Core value:** Government researcher opens DEQODE EARTH, clicks any Pacific SIDS, gets verified displacement + coastline + flood risk data in 10 seconds.
-**Current focus:** Phase 06 — nightly-agent-pipeline
-**Last completed:** 05-02 All 8 SIDS activated + SLR/CMIP6 cards (2026-05-27)
+**Current focus:** Phase 07 — grantham-coprrra
+**Last completed:** 07-02 Demo polish — map flyTo, StatusStrip count, 5 module stubs, IntelligencePanel CTA (2026-05-27)
 **Hard deadline:** 2 September 2026 (COPRRRA Symposium, Brisbane)
-**Last session:** 2026-05-27 (Phase 5 complete — 05-02 approved)
+**Last session:** 2026-05-27 (07-02 complete — all 5 module stubs replaced, map flyTo wired)
 
 ## Current Position
 
-Phase: 06
-Plan: Not started
+Phase: 07 (grantham-coprrra) — EXECUTING
+Plan: 3 of 3
 
 ## Phase 05 Complete ✓ (2026-05-27)
 
@@ -96,6 +96,10 @@ Plan: Not started
 - **Phase 4 DTM fetcher:** fetchDtmDisplacement returns null on any failure — callers fall through to IDMC displacement_records; DTM_API_KEY is optional env var
 - **Phase 4-02 compare-data.ts:** direct Supabase admin calls in RSC — no internal /api/* HTTP needed; avoids base-URL requirement at build time
 - **Phase 4-02 deriveCompareScore:** shared pure function mirroring IntelligencePanel bands — tested independently, consistent risk display across views
+- **MapContext callback ref pattern (07-02):** next/dynamic resolves after useEffect fires — callback ref (not useEffect) ensures flyTo is registered when dynamic MapCanvas actually mounts
+- **MapProvider scope (07-02):** wraps only main content, not StatusStrip — StatusStrip needs no map access
+- **Static module data (07-02):** Record<slug, T> in server components with DEFAULT fallback — no API calls, ISR revalidate=86400; DisplacementModule is the only live-fetch module tab
+- **Gold CTA for managed_retreat (07-02):** differentiates "View Case Study →" from teal "Compare with Brisbane →" — Grantham is Australian managed retreat context
 
 ## Environment Variables (Vercel)
 

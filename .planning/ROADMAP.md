@@ -129,7 +129,7 @@ Plans:
 
 Plans:
 - [ ] 07-01-PLAN.md — /cases/grantham static case study page + GranthamFloodMap component
-- [ ] 07-02-PLAN.md — Demo flow polish: map flyTo wiring, StatusStrip count fix, 5 module stubs replaced, IntelligencePanel Grantham CTA
+- [x] 07-02-PLAN.md — Demo flow polish: map flyTo wiring, StatusStrip count fix, 5 module stubs replaced, IntelligencePanel Grantham CTA (2026-05-27)
 - [ ] 07-03-PLAN.md — Demo checklist (/demo route), AGENTS.md + STATE.md updates
 
 ## Progress
@@ -142,4 +142,4 @@ Plans:
 | 4. Compare View | 2/2 | Complete   | 2026-05-23 |
 | 5. SIDS Data Activation | 2/2 | Complete | 2026-05-27 |
 | 6. Nightly Agent Pipeline | 0/2 | Not started | - |
-| 7. Grantham & COPRRRA Polish | 0/3 | Planned | - |
+| 7. Grantham & COPRRRA Polish | 1/3 | In progress | - |
