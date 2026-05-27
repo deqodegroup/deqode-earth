@@ -12,7 +12,7 @@ DEQODE EARTH ships as a live intelligence platform for the COPRRRA Symposium (2 
 - [x] **Phase 4: Compare View** — /compare/[origin]/[dest] side-by-side SIDS vs Australia, COPRRRA centrepiece (completed 2026-05-23)
 - [x] **Phase 5: SIDS Data Activation** — MNDWI coastline algorithm fix, live data for all 8 SIDS, SLR thresholds, climate projections (completed 2026-05-27)
 - [ ] **Phase 6: Nightly Agent Pipeline** — Automated GEE analysis, IOM DTM displacement flows, data freshness
-- [ ] **Phase 7: Grantham & COPRRRA Polish** — /cases/grantham, demo flow tested, performance optimised
+- [x] **Phase 7: Grantham & COPRRRA Polish** — /cases/grantham, demo flow tested, /demo checklist, all 5 module stubs replaced (completed 2026-05-27)
 
 ## Phase Details
 
@@ -128,9 +128,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — /cases/grantham static case study page + GranthamFloodMap component
+- [x] 07-01-PLAN.md — /cases/grantham static case study page + GranthamFloodMap component
 - [x] 07-02-PLAN.md — Demo flow polish: map flyTo wiring, StatusStrip count fix, 5 module stubs replaced, IntelligencePanel Grantham CTA (2026-05-27)
-- [ ] 07-03-PLAN.md — Demo checklist (/demo route), AGENTS.md + STATE.md updates
+- [x] 07-03-PLAN.md — Demo checklist (/demo route), AGENTS.md + STATE.md + ROADMAP.md updates (2026-05-27)
 
 ## Progress
 
@@ -142,4 +142,4 @@ Plans:
 | 4. Compare View | 2/2 | Complete   | 2026-05-23 |
 | 5. SIDS Data Activation | 2/2 | Complete | 2026-05-27 |
 | 6. Nightly Agent Pipeline | 0/2 | Not started | - |
-| 7. Grantham & COPRRRA Polish | 1/3 | In progress | - |
+| 7. Grantham & COPRRRA Polish | 3/3 | Complete | 2026-05-27 |

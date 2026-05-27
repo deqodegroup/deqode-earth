@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-05-27T09:47:49.925Z"
+status: demo-ready
+last_updated: "2026-05-27T11:10:00Z"
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # State — DEQODE EARTH
@@ -18,15 +18,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-22)
 
 **Core value:** Government researcher opens DEQODE EARTH, clicks any Pacific SIDS, gets verified displacement + coastline + flood risk data in 10 seconds.
-**Current focus:** Phase 07 — grantham-coprrra
-**Last completed:** 07-02 Demo polish — map flyTo, StatusStrip count, 5 module stubs, IntelligencePanel CTA (2026-05-27)
+**Current focus:** COPRRRA Demo — Phase 7 complete
+**Last completed:** 07-03 Demo checklist (/demo) + AGENTS/STATE/ROADMAP updates (2026-05-27)
 **Hard deadline:** 2 September 2026 (COPRRRA Symposium, Brisbane)
-**Last session:** 2026-05-27 (07-02 complete — all 5 module stubs replaced, map flyTo wired)
+**Last session:** 2026-05-27 (07-03 complete — /demo checklist, all docs updated, Phase 7 done)
 
 ## Current Position
 
-Phase: 07 (grantham-coprrra) — EXECUTING
-Plan: 3 of 3
+Phase: 07 · Plan: Complete
+
+## Phase 07 Complete ✓ (2026-05-27)
+
+- 07-01: /cases/grantham static RSC with QRA stats (160 properties, 12 lives, 18.9m peak, 2013 relocation), editorial timeline, flood map, COPRRRA context block
+- 07-02: Map flyTo wired via MapContext (callback ref pattern), StatusStrip count fixed (10 regions, was 8), demoMode active, all 5 module stubs replaced with static curated data, IntelligencePanel Grantham "View Case Study →" CTA
+- 07-03: /demo internal checklist page, AGENTS.md Phase 7 section added, STATE.md + ROADMAP.md updated to Phase 7 complete
+- Demo readiness: full 6-step flow documented at /demo, pre-warm instructions for Tuvalu coastline, failsafe for each step
 
 ## Phase 05 Complete ✓ (2026-05-27)
 
@@ -100,6 +106,10 @@ Plan: 3 of 3
 - **MapProvider scope (07-02):** wraps only main content, not StatusStrip — StatusStrip needs no map access
 - **Static module data (07-02):** Record<slug, T> in server components with DEFAULT fallback — no API calls, ISR revalidate=86400; DisplacementModule is the only live-fetch module tab
 - **Gold CTA for managed_retreat (07-02):** differentiates "View Case Study →" from teal "Compare with Brisbane →" — Grantham is Australian managed retreat context
+- **Phase 7 flyTo bridge:** MapProvider context pattern — avoids prop drilling through RSC → Client boundary; MapCanvasClient registers its own forwardRef handle on mount via callback ref (not useEffect)
+- **Phase 7 module stubs:** Static TypeScript data objects keyed by region.slug; no new API routes; DisplacementModule is the sole live call
+- **Phase 7 demoMode:** homepage passes demoMode prop truthy — StatusStrip shows COPRRRA Demo Mode badge
+- **Phase 7 /demo route:** force-static RSC, internal only, not in navigation — single URL to open before COPRRRA presentation
 
 ## Environment Variables (Vercel)
 
