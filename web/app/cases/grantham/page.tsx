@@ -1,16 +1,8 @@
-import dynamic from "next/dynamic";
 import { CommandBar } from "@/components/command/CommandBar";
 import { StatusStrip } from "@/components/command/StatusStrip";
+import { GranthamFloodMapClient } from "@/components/cases/GranthamFloodMapClient";
 
 export const revalidate = 3600;
-
-const GranthamFloodMap = dynamic(
-  () =>
-    import("@/components/cases/GranthamFloodMap").then(
-      (m) => m.GranthamFloodMap
-    ),
-  { ssr: false }
-);
 
 export default function GranthamCasePage() {
   return (
@@ -121,7 +113,7 @@ export default function GranthamCasePage() {
             <p className="font-mono text-[0.55rem] tracking-[0.18em] uppercase text-[var(--text-dim)] mb-4">
               Flood Extent · 2011 Inundation
             </p>
-            <GranthamFloodMap />
+            <GranthamFloodMapClient />
             <p className="font-mono text-[0.5rem] tracking-[0.1em] uppercase text-[var(--text-dim)] mt-3">
               Source: Queensland Government 2011 flood data · DEQODE EARTH
               analysis cache
