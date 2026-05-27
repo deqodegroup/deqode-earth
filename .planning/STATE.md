@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-05-23T23:31:05.310Z"
+last_updated: "2026-05-27T07:39:09.705Z"
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 9
+  total_plans: 9
+  completed_plans: 10
 ---
 
 # State — DEQODE EARTH
@@ -18,15 +18,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-22)
 
 **Core value:** Government researcher opens DEQODE EARTH, clicks any Pacific SIDS, gets verified displacement + coastline + flood risk data in 10 seconds.
-**Current focus:** Phase 05 — next phase
-**Last completed:** 04-02 Data wiring + 6 data modules (2026-05-24)
+**Current focus:** Phase 05 — sids-data-activation
+**Last completed:** 05-01 MNDWI+Otsu coastline algorithm fix (2026-05-27)
 **Hard deadline:** 2 September 2026 (COPRRRA Symposium, Brisbane)
-**Last session:** 2026-05-23T23:26:16.866Z
+**Last session:** 2026-05-27T07:39:09.701Z
 
 ## Current Position
 
-Phase: 05
-Plan: Not started
+Phase: 05 (sids-data-activation) — EXECUTING
+Plan: 2 of 2
 
 ## Phases Complete
 
@@ -69,7 +69,7 @@ Plan: Not started
 - **Data storage:** Supabase PostGIS (Phase 3+) — NOT BigQuery
 - **Ingestion:** GitHub Actions nightly (Phase 3+) — NOT Cloud Run
 - **API serving:** Next.js API routes — NOT Flask/FastAPI
-- **Coastline:** NDWI > 0 currently (known issue — fix to MNDWI + Otsu in Phase 5)
+- **Coastline (Phase 5):** MNDWI+Otsu+dry-season+connected-components — replaced NDWI > 0; selfMask() before connectedPixelCount guards Pitfall 1; graceful null on CMIP6 sparse grid; per-region scale=10+min_area=1000 for narrow atolls
 - **Phase 3 spatial queries:** flood_zones_in_bbox as Postgres RPC function for ST_Intersects bbox queries — cleaner than inline SQL in API routes
 - **Phase 3 RLS pattern:** service_role write on all 4 PostGIS tables — ingestion scripts use service key, not user auth tokens
 - **flood_forecasts upsert:** on_conflict uses (source, forecast_date, latitude, longitude) — location_hash GENERATED column was NOT added to final 002_postgis_schema.sql migration

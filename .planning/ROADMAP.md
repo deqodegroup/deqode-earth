@@ -99,7 +99,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 05-01: MNDWI coastline algorithm fix
+- [x] 05-01: MNDWI coastline algorithm fix
 - [ ] 05-02: SIDS data activation + SLR thresholds
 
 ### Phase 6: Nightly Agent Pipeline
