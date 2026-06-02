@@ -52,6 +52,22 @@ npm run test
 - For UI, preserve DEQODE quality standards: no generic starter-template surfaces, no default Inter/Roboto primary type, and no low-effort gradient-only identity.
 - Update this file if durable project facts change.
 
+## Map & UI updates (2026-06-02 — complete)
+
+### Changes
+- `web/lib/map-config.ts` — TILE_URLS now uses Google Maps tiles (`mt{s}.google.com/vt/lyrs=m` road, `lyrs=y` satellite hybrid). Removed Esri Dark Gray Canvas and CartoDB entries.
+- `web/components/map/MapCanvas.tsx` — defaults to Google Maps Standard tiles. SAT/MAP toggle button (top-right) switches to Google Maps satellite hybrid. Clean rewrite, no Mapbox/Esri dependency.
+- `web/components/command/StatusStrip.tsx` — `demoMode` prop removed entirely. Component takes no props. COPRRRA Demo Mode badge deleted.
+- `web/app/page.tsx` — `<StatusStrip demoMode />` → `<StatusStrip />`
+- `web/app/cases/grantham/page.tsx` — `<StatusStrip demoMode />` → `<StatusStrip />` (was blocking Vercel build with TS error)
+
+### Key decisions
+- Google Maps tiles via `mt{s}.google.com` — no API key required, exact consumer-familiar look
+- COPRRRA is an event, not the product identity — all event-specific branding removed from base UI
+- `/demo` route still exists for internal pre-COPRRRA run-through, but StatusStrip is clean
+
+### 73/73 tests passing · deployed commit: d3cc194
+
 ## Phase 7: Grantham & COPRRRA Polish (2026-05-27 — complete)
 
 ### New files
@@ -70,7 +86,7 @@ npm run test
 - flyTo wiring: MapProvider wraps CommandCenter main content; MapCanvasClient registers ref via callback ref (not useEffect — next/dynamic resolves asynchronously, useEffect fires too early); RegionRowClient calls useFlyTo on select
 - Module stubs: replaced with per-module RSC components (static data objects keyed by region.slug); DisplacementModule is the only live API call
 - StatusStrip: now imports REGION_LIST from regions.ts (was LOCATIONS_LIST from locations.ts — only had 8 SIDS, now 10 including Brisbane + Grantham)
-- demoMode: homepage passes demoMode prop truthy to StatusStrip — shows COPRRRA Demo Mode badge
+- demoMode: REMOVED — StatusStrip takes no props, COPRRRA badge deleted (see 2026-06-02 update above)
 - IntelligencePanel: gold "View Case Study →" CTA for regionType==="managed_retreat" regions (Grantham)
 - Grantham page: hardcoded QRA stats (160 properties, 12 lives, 18.9m peak, 2013 relocation) from QLD Floods Commission of Inquiry 2012
 - /demo route: internal only, not in navigation — open directly at /demo before COPRRRA presentation
