@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ASIA_PACIFIC_DEFAULT, TILE_URLS } from "./map-config";
+import { ASIA_PACIFIC_DEFAULT, TILE_URLS, GOOGLE_TILE_OPTIONS } from "./map-config";
 
 describe("map-config", () => {
   it("default center is Asia-Pacific", () => {
@@ -7,15 +7,17 @@ describe("map-config", () => {
     expect(ASIA_PACIFIC_DEFAULT.zoom).toBe(4);
   });
 
-  it("has satellite tile URL", () => {
-    expect(TILE_URLS.satellite).toContain("arcgisonline.com");
+  it("Google Maps road tile URL is correct format", () => {
+    expect(TILE_URLS.googleMaps).toContain("mt{s}.google.com");
+    expect(TILE_URLS.googleMaps).toContain("lyrs=m");
   });
 
-  it("has CartoDB voyager tile URL", () => {
-    expect(TILE_URLS.voyager).toContain("cartocdn.com");
+  it("Google Maps satellite tile URL is correct format", () => {
+    expect(TILE_URLS.googleSatellite).toContain("mt{s}.google.com");
+    expect(TILE_URLS.googleSatellite).toContain("lyrs=y");
   });
 
-  it("has CartoDB dark matter tile URL", () => {
-    expect(TILE_URLS.darkMatter).toContain("cartocdn.com");
+  it("Google tile options include all 4 subdomains", () => {
+    expect(GOOGLE_TILE_OPTIONS.subdomains).toEqual(["0", "1", "2", "3"]);
   });
 });

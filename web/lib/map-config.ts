@@ -6,19 +6,17 @@ export const ASIA_PACIFIC_DEFAULT = {
 };
 
 export const TILE_URLS = {
-  // CartoDB Voyager — clean Google Maps-style road map, familiar to all audiences, free
-  voyager:
-    "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-  // CartoDB DarkMatter — premium dark basemap for night/dark UI contexts
-  darkMatter:
-    "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-  // Esri satellite — actual photography, max impact for coastline + COPRRRA demos
-  satellite:
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  // Esri labels — country/city names overlay, works on top of satellite
-  labels:
-    "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+  // Google Maps standard — exact consumer-familiar look, no API key required
+  googleMaps: "https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
+  // Google Maps satellite hybrid — labels on imagery
+  googleSatellite: "https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
 };
+
+export const GOOGLE_TILE_OPTIONS = {
+  subdomains: ["0", "1", "2", "3"],
+  maxZoom: 20,
+  attribution: '© <a href="https://maps.google.com">Google Maps</a>',
+} as const;
 
 export const FLY_TO_OPTIONS = {
   duration: 1.2,
