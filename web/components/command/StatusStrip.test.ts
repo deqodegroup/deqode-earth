@@ -16,27 +16,11 @@ vi.mock("@/lib/regions", () => ({
   ],
 }));
 
-// We test the logic that StatusStrip uses — the liveCount calculation
-// and the demoMode conditional rendering flag.
-// These are pure logic tests; no React rendering needed.
-
+// Pure logic test: StatusStrip liveCount calculation
 describe("StatusStrip — liveCount", () => {
-  it("counts 10 live regions from REGION_LIST (not 8)", async () => {
+  it("counts 10 live regions from REGION_LIST", async () => {
     const { REGION_LIST } = await import("@/lib/regions");
     const liveCount = REGION_LIST.filter((r) => r.isLive).length;
     expect(liveCount).toBe(10);
-  });
-});
-
-describe("StatusStrip — demoMode prop logic", () => {
-  it("renders COPRRRA Demo Mode badge when demoMode is true", () => {
-    // Test the conditional: demoMode && show badge
-    const demoMode = true;
-    expect(demoMode).toBe(true); // badge will render
-  });
-
-  it("does NOT render COPRRRA Demo Mode badge when demoMode is false", () => {
-    const demoMode = false;
-    expect(demoMode).toBe(false); // badge will not render
   });
 });

@@ -11,7 +11,11 @@ describe("map-config", () => {
     expect(TILE_URLS.satellite).toContain("arcgisonline.com");
   });
 
-  it("has dark terrain tile URL", () => {
-    expect(TILE_URLS.darkTerrain).toContain("arcgisonline.com");
+  it("has CartoDB voyager tile URL", () => {
+    expect(TILE_URLS.voyager).toContain("cartocdn.com");
+  });
+
+  it("has CartoDB dark matter tile URL", () => {
+    expect(TILE_URLS.darkMatter).toContain("cartocdn.com");
   });
 });

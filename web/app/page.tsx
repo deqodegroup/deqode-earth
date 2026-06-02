@@ -48,7 +48,7 @@ export default function CommandCenter() {
         </main>
       </MapProvider>
 
-      <StatusStrip demoMode />
+      <StatusStrip />
     </div>
   );
 }

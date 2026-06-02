@@ -2,7 +2,7 @@
 
 import { REGION_LIST } from "@/lib/regions";
 
-export function StatusStrip({ demoMode = false }: { demoMode?: boolean }) {
+export function StatusStrip() {
   const liveCount = REGION_LIST.filter((r) => r.isLive).length;
 
   return (
@@ -16,15 +16,6 @@ export function StatusStrip({ demoMode = false }: { demoMode?: boolean }) {
         <StatusPill color="dim" label={`${liveCount} Regions`} />
         <StatusPill color="dim" label="Updated 14 min ago" />
       </div>
-
-      {demoMode && (
-        <div className="flex items-center gap-2 rounded border border-teal/30 bg-teal/5 px-3 py-0.5">
-          <span className="w-1 h-1 rounded-full bg-teal animate-pulse" />
-          <span className="font-mono text-[0.55rem] tracking-[0.2em] uppercase text-teal">
-            COPRRRA Demo Mode
-          </span>
-        </div>
-      )}
 
       <div className="hidden md:block">
         <span className="font-mono text-[0.55rem] tracking-[0.12em] uppercase text-[var(--text-dim)]">
