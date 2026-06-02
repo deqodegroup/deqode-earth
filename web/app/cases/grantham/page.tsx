@@ -176,7 +176,7 @@ export default function GranthamCasePage() {
         </section>
       </main>
 
-      <StatusStrip demoMode />
+      <StatusStrip />
     </div>
   );
 }
