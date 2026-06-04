@@ -5,6 +5,9 @@ on:
     - cron: '0 18 * * *'   # 04:00 AEST (UTC+10)
   workflow_dispatch:         # Manual trigger for testing
 
+env:
+  SUPABASE_URL: https://vofpmfxqlflabpdackls.supabase.co
+
 jobs:
   ingest-bcc-flood:
     name: BCC Flood Awareness
@@ -18,7 +21,6 @@ jobs:
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_bcc_flood.py
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-qld-2011:
@@ -33,7 +35,6 @@ jobs:
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_qld_2011.py
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-wmip-gauges:
@@ -48,7 +49,6 @@ jobs:
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_wmip_gauges.py
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-idmc:
@@ -63,7 +63,6 @@ jobs:
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_idmc.py
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-worldbank:
@@ -78,7 +77,6 @@ jobs:
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_worldbank.py
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-open-meteo:
@@ -93,7 +91,6 @@ jobs:
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_open_meteo.py
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-pdh-stat:
@@ -108,7 +105,6 @@ jobs:
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_pdh_stat.py
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-deltares:
@@ -123,7 +119,6 @@ jobs:
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_deltares.py
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-jrc-glofas:
@@ -138,6 +133,5 @@ jobs:
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_jrc_glofas.py
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           GEE_B64_KEY: ${{ secrets.GEE_B64_KEY }}
