@@ -1,16 +1,15 @@
 """
-World Bank wbgapi -> Supabase displacement_records
+World Bank REST API -> Supabase displacement_records
 Indicators:
   SM.POP.NETM  -- Net migration (5-year aggregate) 2000-2024
   SP.POP.TOTL  -- Total population 2000-2024
 Economies: TV, KI, VU, SB, FJ, MH, TO, WS, NU, PG
 
-pip install wbgapi
+pip install requests
 """
 import os
-import sys
 import logging
-import wbgapi as wb
+import requests
 from supabase import create_client
 
 logging.basicConfig(level=logging.INFO)
@@ -36,34 +35,42 @@ ECONOMY_NAMES = {
 
 
 def main():
-    try:
-        log.info("Fetching World Bank SM.POP.NETM (net migration)...")
-        df_migration = wb.data.DataFrame("SM.POP.NETM", economy=ECONOMIES, time=YEARS)
-        log.info("Fetching World Bank SP.POP.TOTL (population)...")
-        df_population = wb.data.DataFrame("SP.POP.TOTL", economy=ECONOMIES, time=YEARS)
-    except Exception as e:
-        log.warning(f"WARN: worldbank fetch failed: {e}")
-        sys.exit(1)
+    def fetch_indicator(indicator: str) -> dict[tuple[str, int], int]:
+        values = {}
+        for economy in ECONOMIES:
+            url = (
+                f"https://api.worldbank.org/v2/country/{economy}/indicator/{indicator}"
+                "?date=2000:2024&format=json&per_page=1000"
+            )
+            try:
+                resp = requests.get(url, timeout=30)
+                resp.raise_for_status()
+                payload = resp.json()
+            except Exception as e:
+                log.warning("WARN: worldbank fetch failed for %s %s: %s", economy, indicator, e)
+                continue
+
+            if not isinstance(payload, list) or len(payload) < 2 or not isinstance(payload[1], list):
+                log.warning("WARN: worldbank returned no rows for %s %s", economy, indicator)
+                continue
+
+            for row in payload[1]:
+                value = row.get("value")
+                if value is None:
+                    continue
+                values[(economy, int(row["date"]))] = int(value)
+        return values
+
+    log.info("Fetching World Bank SM.POP.NETM (net migration)...")
+    migration_values = fetch_indicator("SM.POP.NETM")
+    log.info("Fetching World Bank SP.POP.TOTL (population)...")
+    population_values = fetch_indicator("SP.POP.TOTL")
 
     records = []
     for economy in ECONOMIES:
         for year in YEARS:
-            net_migration = None
-            population = None
-            try:
-                # wbgapi DataFrame indexed by economy and year
-                # Columns are years (YR2000 etc), rows are economies
-                year_key = f"YR{year}"
-                if economy in df_migration.index and year_key in df_migration.columns:
-                    val = df_migration.loc[economy, year_key]
-                    if val is not None and str(val) not in ("nan", "NaN", ""):
-                        net_migration = int(val)
-                if economy in df_population.index and year_key in df_population.columns:
-                    val = df_population.loc[economy, year_key]
-                    if val is not None and str(val) not in ("nan", "NaN", ""):
-                        population = int(val)
-            except (KeyError, ValueError):
-                pass
+            net_migration = migration_values.get((economy, year))
+            population = population_values.get((economy, year))
 
             if net_migration is not None or population is not None:
                 records.append({
