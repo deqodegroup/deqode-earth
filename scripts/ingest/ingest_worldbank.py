@@ -8,6 +8,7 @@ Economies: TV, KI, VU, SB, FJ, MH, TO, WS, NU, PG
 pip install requests
 """
 import os
+import sys
 import logging
 import requests
 from supabase import create_client
@@ -78,14 +79,19 @@ def main():
                     "country_code": economy,
                     "country_name": ECONOMY_NAMES.get(economy, economy),
                     "year": year,
+                    "event_date": None,
                     "net_migration": net_migration,
                     "population": population,
                     "data_type": "annual",
                 })
 
     if records:
-        SUPABASE.table("displacement_records").upsert(records).execute()
-        log.info(f"OK: worldbank -- {len(records)} annual records upserted")
+        try:
+            SUPABASE.table("displacement_records").upsert(records).execute()
+            log.info(f"OK: worldbank -- {len(records)} annual records upserted")
+        except Exception as e:
+            log.error(f"ERROR: worldbank upsert failed: {e}")
+            sys.exit(1)
     else:
         log.warning("WARN: worldbank -- no records to upsert")
 
