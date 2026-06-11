@@ -2,7 +2,7 @@
 
 import { REGION_LIST } from "@/lib/regions";
 
-export function StatusStrip() {
+export function StatusStrip({ demoMode = false }: { demoMode?: boolean }) {
   const liveCount = REGION_LIST.filter((r) => r.isLive).length;
 
   return (
@@ -14,7 +14,8 @@ export function StatusStrip() {
       <div className="flex items-center gap-6">
         <StatusPill color="teal" label="S2 Active" />
         <StatusPill color="dim" label={`${liveCount} Regions`} />
-        <StatusPill color="dim" label="Updated 14 min ago" />
+        <StatusPill color="dim" label="Updated on analysis run" />
+        {demoMode && <StatusPill color="gold" label="COPRRRA Demo Mode" />}
       </div>
 
       <div className="hidden md:block">
