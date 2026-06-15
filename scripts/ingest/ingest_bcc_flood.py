@@ -48,6 +48,16 @@ FLOOD_CLASS_MAP = {
 COUNCIL_FIELDS = ["COUNCIL", "COUNCIL_NAME", "council"]
 
 
+def get_available_fields(query_url: str) -> set[str]:
+    layer_url = query_url.rsplit("/query", 1)[0]
+    resp = requests.get(layer_url, params={"f": "json"}, timeout=30)
+    resp.raise_for_status()
+    payload = resp.json()
+    if payload.get("error"):
+        raise RuntimeError(payload["error"].get("message", "ArcGIS metadata error"))
+    return {field["name"] for field in payload.get("fields", [])}
+
+
 def fetch_pages(url: str, out_fields: list[str], page_size: int = 1000) -> Iterator[list]:
     offset = 0
     total = 0
@@ -63,7 +73,10 @@ def fetch_pages(url: str, out_fields: list[str], page_size: int = 1000) -> Itera
         }
         resp = requests.get(url, params=params, timeout=60)
         resp.raise_for_status()
-        batch = resp.json().get("features", [])
+        payload = resp.json()
+        if payload.get("error"):
+            raise RuntimeError(payload["error"].get("message", "ArcGIS query error"))
+        batch = payload.get("features", [])
         total += len(batch)
         log.info("  Fetched %s features at offset %s (total: %s)", len(batch), offset, total)
         if batch:
@@ -74,12 +87,12 @@ def fetch_pages(url: str, out_fields: list[str], page_size: int = 1000) -> Itera
 
 
 def resolve_flood_class(props: dict, primary_field: str, fallbacks: list[str]) -> str | None:
-    raw_class = props.get(primary_field)
-    if raw_class in (None, ""):
-        for field in fallbacks:
-            raw_class = props.get(field)
-            if raw_class not in (None, ""):
-                break
+    props_by_lower_name = {str(key).lower(): value for key, value in props.items()}
+    raw_class = None
+    for field in [primary_field, *fallbacks]:
+        raw_class = props_by_lower_name.get(field.lower())
+        if raw_class not in (None, ""):
+            break
     if raw_class in (None, ""):
         return None
     normalised = str(raw_class).strip().upper()
@@ -104,11 +117,20 @@ def polygonal_geometry(geometry):
 
 
 def dissolve_endpoint(endpoint: dict) -> list[dict]:
-    fields = [
+    candidate_fields = [
         endpoint["flood_class_field"],
         *endpoint.get("flood_class_fallbacks", []),
         *COUNCIL_FIELDS,
     ]
+    available_fields = get_available_fields(endpoint["url"])
+    fields_by_lower_name = {field.lower(): field for field in available_fields}
+    fields = [
+        fields_by_lower_name[field.lower()]
+        for field in candidate_fields
+        if field.lower() in fields_by_lower_name
+    ]
+    if not fields:
+        raise RuntimeError("none of the expected class fields exist in the ArcGIS layer")
     page_geometries = defaultdict(list)
     skipped = 0
 
