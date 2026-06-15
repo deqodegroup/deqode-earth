@@ -191,7 +191,7 @@ export default function DemoPage() {
           </div>
         </div>
       </main>
-      <StatusStrip demoMode />
+      <StatusStrip />
     </div>
   );
 }

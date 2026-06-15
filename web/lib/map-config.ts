@@ -10,13 +10,17 @@ export const TILE_URLS = {
   googleMaps: "https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
   // Google Maps satellite hybrid — labels on imagery
   googleSatellite: "https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+  labels:
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+  darkTerrain:
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
 };
 
 export const GOOGLE_TILE_OPTIONS = {
   subdomains: ["0", "1", "2", "3"],
   maxZoom: 20,
   attribution: '© <a href="https://maps.google.com">Google Maps</a>',
-} as const;
+};
 
 export const FLY_TO_OPTIONS = {
   duration: 1.2,

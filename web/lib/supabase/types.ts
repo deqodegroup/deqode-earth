@@ -25,3 +25,4 @@ export const PROTECTED_ROLE_ROUTES: Record<string, Role[]> = {
 
 export const CAN_RUN_ANALYSIS: Role[] = ['analyst', 'admin', 'deqode_admin']
 export const CAN_DOWNLOAD: Role[] = ['analyst', 'admin', 'deqode_admin']
+export const CAN_REVIEW_RMAC: Role[] = ['analyst', 'admin', 'deqode_admin']

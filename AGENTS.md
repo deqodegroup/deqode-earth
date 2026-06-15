@@ -62,6 +62,16 @@ npm run test
 - Source refreshes must pass coverage checks before replacing the last known-good snapshot.
 - `/api/data-health` is the product-facing source freshness and failure contract.
 
+## Alofi South RMAC MVP (2026-06-15)
+- Showcase route: `/rmac/alofi-south`.
+- Mobile field workflow records management-plan action, narrative, people, spend, location, evidence photos, consent, and reporting visibility.
+- Written drafts recover from device storage after a dropped connection.
+- Committee roles (`analyst`, `admin`, `deqode_admin`) can approve or return evidence; contributors can correct and resubmit returned records under the same reference.
+- Supabase tables: `rmac_activities`, `rmac_activity_evidence`, and immutable `rmac_activity_audit`; private evidence bucket: `rmac-evidence`.
+- All mutations run through authenticated server routes with explicit organisation/ownership checks. Direct authenticated table writes are revoked.
+- Database migrations `005` through `007` were applied to production on 2026-06-15.
+- Verification: 81 tests passed, focused lint passed, and the full Next.js production build passed.
+
 ## Map & UI updates (2026-06-02 — complete)
 
 ### Changes
