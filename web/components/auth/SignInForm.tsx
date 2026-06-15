@@ -24,8 +24,13 @@ export function SignInForm({ next = '/dashboard' }: Props) {
     if (!resetEmail) return
     setResetLoading(true)
     const supabase = createSupabaseBrowserClient()
+    const resetPath = `/auth/reset?next=${encodeURIComponent(next)}`
+    const callbackParams = new URLSearchParams({
+      next: resetPath,
+      type: 'recovery',
+    })
     await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset`,
+      redirectTo: `${window.location.origin}/auth/callback?${callbackParams.toString()}`,
     })
     setMode('sent')
     setResetLoading(false)

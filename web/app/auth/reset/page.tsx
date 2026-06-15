@@ -1,10 +1,20 @@
 import { AuthCard } from '@/components/auth/AuthCard'
 import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm'
 
-export default function ResetPasswordPage() {
+export default async function ResetPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>
+}) {
+  const { next: rawNext } = await searchParams
+  const next =
+    rawNext?.startsWith('/') && !rawNext.startsWith('//')
+      ? rawNext
+      : '/dashboard'
+
   return (
     <AuthCard>
-      <ResetPasswordForm />
+      <ResetPasswordForm next={next} />
     </AuthCard>
   )
 }

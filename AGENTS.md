@@ -72,6 +72,10 @@ npm run test
 - Database migrations `005` through `007` were applied to production on 2026-06-15.
 - Verification: 81 tests passed, focused lint passed, and the full Next.js production build passed.
 
+## Password Recovery (2026-06-15)
+- Reset-password matching reads submitted DOM values so browser/password-manager autofill cannot leave React state stale.
+- Recovery links preserve the original protected destination; RMAC resets return to `/rmac/alofi-south`.
+
 ## Map & UI updates (2026-06-02 — complete)
 
 ### Changes
