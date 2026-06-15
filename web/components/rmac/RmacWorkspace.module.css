@@ -534,6 +534,16 @@
   background: rgba(166, 65, 54, 0.1);
 }
 
+.previewBanner {
+  width: min(760px, calc(100% - 40px));
+  margin: 24px auto -24px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--gold);
+  background: rgba(199, 149, 63, 0.12);
+  color: var(--ink);
+  font-size: 13px;
+}
+
 .activityList,
 .reviewList {
   display: grid;

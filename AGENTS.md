@@ -75,6 +75,7 @@ npm run test
 ## Password Recovery (2026-06-15)
 - Reset-password matching reads submitted DOM values so browser/password-manager autofill cannot leave React state stale.
 - Recovery links preserve the original protected destination; RMAC resets return to `/rmac/alofi-south`.
+- Public read-only RMAC showcase: `/showcase/alofi-south`; sample data only and all mutations are intercepted.
 
 ## Map & UI updates (2026-06-02 — complete)
 

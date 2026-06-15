@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   RMAC_ACTION_AREAS,
   type RmacActionArea,
@@ -56,6 +57,53 @@ interface Draft {
 
 const DRAFT_KEY = "deqode-earth:rmac:alofi-south:draft";
 
+const PREVIEW_ACTIVITIES: Activity[] = [
+  {
+    id: "preview-approved",
+    reference_code: "AS-20260612-REEF01",
+    created_by: "preview",
+    activity_date: "2026-06-12",
+    action_area: "marine",
+    description:
+      "Completed a reef health walk and recorded coral stress, shoreline debris and access conditions.",
+    people_count: 9,
+    people_notes: "RMAC members and youth monitors",
+    spend_nzd: 185,
+    latitude: -19.059,
+    longitude: -169.918,
+    location_name: "Alofi South reef access",
+    location_accuracy_m: 12,
+    visibility: "approved_reporting",
+    status: "approved",
+    review_notes: "Evidence checked and approved for committee reporting.",
+    submitted_at: "2026-06-12T20:00:00Z",
+    reviewed_at: "2026-06-13T01:00:00Z",
+    rmac_activity_evidence: [],
+  },
+  {
+    id: "preview-pending",
+    reference_code: "AS-20260614-COAST2",
+    created_by: "preview",
+    activity_date: "2026-06-14",
+    action_area: "pollution",
+    description:
+      "Removed shoreline waste from the southern access track and documented material requiring collection.",
+    people_count: 6,
+    people_notes: "Community clean-up team",
+    spend_nzd: 72.5,
+    latitude: null,
+    longitude: null,
+    location_name: "Southern coastal track",
+    location_accuracy_m: null,
+    visibility: "committee",
+    status: "pending",
+    review_notes: null,
+    submitted_at: "2026-06-14T21:30:00Z",
+    reviewed_at: null,
+    rmac_activity_evidence: [],
+  },
+];
+
 function todayInNiue() {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Pacific/Niue",
@@ -104,13 +152,17 @@ function formatDate(value: string) {
 export function RmacWorkspace({
   userEmail,
   canReview,
+  previewMode = false,
 }: {
   userEmail: string;
   canReview: boolean;
+  previewMode?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("log");
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const [activities, setActivities] = useState<Activity[]>(
+    previewMode ? PREVIEW_ACTIVITIES : []
+  );
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,6 +176,10 @@ export function RmacWorkspace({
   const fileInput = useRef<HTMLInputElement>(null);
 
   const loadActivities = useCallback(async () => {
+    if (previewMode) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch("/api/rmac/activities", { cache: "no-store" });
@@ -138,9 +194,13 @@ export function RmacWorkspace({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [previewMode]);
 
   useEffect(() => {
+    if (previewMode) {
+      setLoading(false);
+      return;
+    }
     const saved = window.localStorage.getItem(DRAFT_KEY);
     if (saved) {
       try {
@@ -150,11 +210,12 @@ export function RmacWorkspace({
       }
     }
     void loadActivities();
-  }, [loadActivities]);
+  }, [loadActivities, previewMode]);
 
   useEffect(() => {
+    if (previewMode) return;
     window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [draft]);
+  }, [draft, previewMode]);
 
   useEffect(() => {
     return () => previews.forEach((url) => URL.revokeObjectURL(url));
@@ -233,6 +294,11 @@ export function RmacWorkspace({
 
   async function submitActivity(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (previewMode) {
+      setError(null);
+      setMessage("Preview only. Sign in to submit this activity.");
+      return;
+    }
     setError(null);
     setMessage(null);
     setSubmitting(true);
@@ -273,6 +339,11 @@ export function RmacWorkspace({
   }
 
   async function review(activity: Activity, status: "approved" | "returned") {
+    if (previewMode) {
+      setError(null);
+      setMessage(`Preview only. ${activity.reference_code} was not changed.`);
+      return;
+    }
     setError(null);
     setReviewingId(activity.id);
     try {
@@ -331,11 +402,17 @@ export function RmacWorkspace({
             <span className={styles.mobileBrand}>Alofi South RMAC</span>
             <p>{userEmail}</p>
           </div>
-          <form action="/api/auth/signout" method="POST">
-            <button type="submit" className={styles.signOut}>
-              Sign out
-            </button>
-          </form>
+          {previewMode ? (
+            <Link href="/login?next=/rmac/alofi-south" className={styles.signOut}>
+              Sign in
+            </Link>
+          ) : (
+            <form action="/api/auth/signout" method="POST">
+              <button type="submit" className={styles.signOut}>
+                Sign out
+              </button>
+            </form>
+          )}
         </header>
 
         <nav className={styles.tabs} aria-label="RMAC workspace">
@@ -367,6 +444,12 @@ export function RmacWorkspace({
         {(message || error) && (
           <div className={error ? styles.errorBanner : styles.successBanner} role="status">
             {error ?? message}
+          </div>
+        )}
+
+        {previewMode && !message && !error && (
+          <div className={styles.previewBanner} role="status">
+            Showcase preview. Sample records only; nothing entered here is saved.
           </div>
         )}
 
