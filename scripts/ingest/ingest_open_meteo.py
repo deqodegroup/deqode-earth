@@ -49,8 +49,8 @@ def main():
     discharges_mean = daily.get("river_discharge_mean", [])
 
     if not dates:
-        log.warning("WARN: open_meteo -- empty response")
-        return
+        log.error("FAIL: open_meteo -- empty response")
+        sys.exit(1)
 
     records = []
     for i, d in enumerate(dates):
@@ -69,6 +69,12 @@ def main():
         })
 
     if records:
+        if len(records) < 90:
+            log.error(
+                "FAIL: open_meteo validation rejected only %s forecast records",
+                len(records),
+            )
+            sys.exit(1)
         # on_conflict matches UNIQUE(source, forecast_date, latitude, longitude) in schema
         SUPABASE.table("flood_forecasts").upsert(
             records,
@@ -76,7 +82,8 @@ def main():
         ).execute()
         log.info(f"OK: open_meteo -- {len(records)} forecast records upserted")
     else:
-        log.warning("WARN: open_meteo -- no records to upsert")
+        log.error("FAIL: open_meteo -- no records to upsert")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

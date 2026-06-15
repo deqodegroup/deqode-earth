@@ -173,7 +173,8 @@ def main():
         ).execute()
         log.info(f"OK: wmip — {len(records)} gauge readings upserted")
     else:
-        log.warning("WARN: wmip — no gauge readings upserted")
+        log.error("FAIL: wmip -- no gauge readings upserted")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

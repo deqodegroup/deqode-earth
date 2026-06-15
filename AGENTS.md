@@ -52,6 +52,16 @@ npm run test
 - For UI, preserve DEQODE quality standards: no generic starter-template surfaces, no default Inter/Roboto primary type, and no low-effort gradient-only identity.
 - Update this file if durable project facts change.
 
+## Data Operations (2026-06-15)
+- Live forecasts and gauges run every 6 hours.
+- Brisbane flood mapping runs weekly.
+- IDMC, World Bank, PDH.stat, Deltares, and JRC baselines run monthly.
+- Historical flood extents are manual-only and retained permanently.
+- Open-Meteo history is retained for 30 days; WMIP gauge history for 90 days.
+- Failed and abandoned analysis-cache jobs expire after 30 and 7 days respectively.
+- Source refreshes must pass coverage checks before replacing the last known-good snapshot.
+- `/api/data-health` is the product-facing source freshness and failure contract.
+
 ## Map & UI updates (2026-06-02 — complete)
 
 ### Changes
