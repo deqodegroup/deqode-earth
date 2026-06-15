@@ -14,8 +14,6 @@ from supabase import create_client
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
-SUPABASE = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
-
 PDH_URL = "https://stats-nsi-stable.pacificdata.org/rest/data/SPC,DF_POP_PROJ/all/?format=csvfilewithlabels"
 
 # Map PDH.stat territory codes -> ISO2 where available
@@ -55,29 +53,26 @@ TERRITORY_NAMES = {
 }
 
 
-def main():
-    try:
-        log.info("Fetching PDH.stat population projections...")
-        resp = requests.get(PDH_URL, timeout=120)
-        resp.raise_for_status()
-        content = resp.text
-    except Exception as e:
-        log.warning(f"WARN: pdh_stat fetch failed: {e}")
-        sys.exit(1)
-
-    records = []
+def parse_population_records(content: str) -> list[dict]:
+    records_by_key = {}
     reader = csv.DictReader(io.StringIO(content))
 
-    # CSV columns vary -- inspect headers and adapt
-    # Typical columns: GEO_PICT (territory code), TIME_PERIOD (year), OBS_VALUE (population)
     for row in reader:
-        territory = row.get("GEO_PICT", row.get("ECONOMY", row.get("geo_pict", "")))
-        year_str = row.get("TIME_PERIOD", row.get("time_period", row.get("year", "")))
-        value_str = row.get("OBS_VALUE", row.get("obs_value", row.get("value", "")))
+        if (
+            row.get("INDICATOR") != "MIDYEARPOPEST"
+            or row.get("SEX") != "_T"
+            or row.get("AGE") != "_T"
+            or row.get("UNIT_MEASURE") != "N"
+        ):
+            continue
+
+        territory = row.get("GEO_PICT", "")
+        year_str = row.get("TIME_PERIOD", "")
+        value_str = row.get("OBS_VALUE", "")
 
         iso2 = PDH_TO_ISO2.get(territory)
         if not iso2:
-            continue  # Skip territories not in our region set
+            continue
 
         try:
             year = int(year_str) if year_str else None
@@ -85,21 +80,46 @@ def main():
         except (ValueError, TypeError):
             continue
 
-        if year and population:
-            records.append({
+        if year and population is not None and population >= 0:
+            records_by_key[(iso2, year)] = {
                 "source": "pdh_stat",
                 "country_code": iso2,
                 "country_name": TERRITORY_NAMES.get(iso2, iso2),
                 "year": year,
                 "population": population,
                 "data_type": "projection",
-            })
+            }
+
+    return sorted(
+        records_by_key.values(),
+        key=lambda record: (record["country_code"], record["year"]),
+    )
+
+
+def main():
+    try:
+        log.info("Fetching PDH.stat population projections...")
+        resp = requests.get(PDH_URL, timeout=120)
+        resp.raise_for_status()
+        records = parse_population_records(resp.text)
+    except Exception as e:
+        log.warning(f"WARN: pdh_stat fetch failed: {e}")
+        sys.exit(1)
 
     if records:
-        SUPABASE.table("displacement_records").upsert(records).execute()
-        log.info(f"OK: pdh_stat -- {len(records)} projection records upserted")
+        supabase = create_client(
+            os.environ["SUPABASE_URL"],
+            os.environ["SUPABASE_SERVICE_KEY"],
+        )
+        result = supabase.rpc(
+            "replace_pdh_population_records",
+            {"p_records": records},
+        ).execute()
+        inserted = result.data if isinstance(result.data, int) else len(records)
+        log.info(f"OK: pdh_stat -- {inserted} projection records replaced")
     else:
         log.warning("WARN: pdh_stat -- no records parsed from CSV")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
