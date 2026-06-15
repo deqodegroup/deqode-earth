@@ -71,6 +71,8 @@ npm run test
 - All mutations run through authenticated server routes with explicit organisation/ownership checks. Direct authenticated table writes are revoked.
 - Database migrations `005` through `007` were applied to production on 2026-06-15.
 - Verification: 81 tests passed, focused lint passed, and the full Next.js production build passed.
+- Earth client intelligence route: `/rmac/alofi-south/insights`; approved records only, with map, management-plan progress, metrics, evidence timeline and reporting filters.
+- Public sample preview: `/showcase/alofi-south/insights`; isolated sample data only.
 
 ## Password Recovery (2026-06-15)
 - Reset-password matching reads submitted DOM values so browser/password-manager autofill cannot leave React state stale.

@@ -402,6 +402,16 @@ export function RmacWorkspace({
             <span className={styles.mobileBrand}>Alofi South RMAC</span>
             <p>{userEmail}</p>
           </div>
+          <Link
+            href={
+              previewMode
+                ? "/showcase/alofi-south/insights"
+                : "/rmac/alofi-south/insights"
+            }
+            className={styles.clientView}
+          >
+            Client view
+          </Link>
           {previewMode ? (
             <Link href="/login?next=/rmac/alofi-south" className={styles.signOut}>
               Sign in

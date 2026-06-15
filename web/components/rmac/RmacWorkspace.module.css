@@ -156,6 +156,20 @@
   cursor: pointer;
 }
 
+.clientView {
+  margin-left: auto;
+  margin-right: 18px;
+  color: var(--reef);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.clientView:hover,
+.clientView:focus-visible {
+  color: var(--deep);
+  outline: none;
+}
+
 .signOut:hover,
 .signOut:focus-visible {
   border-color: var(--gold);
