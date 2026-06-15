@@ -79,6 +79,11 @@ npm run test
 - Recovery links preserve the original protected destination; RMAC resets return to `/rmac/alofi-south`.
 - Public read-only RMAC showcase: `/showcase/alofi-south`; sample data only and all mutations are intercepted.
 
+## Sign-In Reliability (2026-06-16)
+- Protected sign-in now authenticates through the Supabase browser client, verifies the user session, then performs a hard redirect.
+- Full protected destinations, including query strings, are preserved through login and unsafe external redirects are rejected.
+- Verification: 91 tests passed, focused auth lint passed, and the full production build passed.
+
 ## Map & UI updates (2026-06-02 — complete)
 
 ### Changes
