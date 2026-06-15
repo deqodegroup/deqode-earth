@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isProtectedRoute, isAdminRoute } from '@/lib/auth/route-guards'
+import { buildLoginRedirectPath } from '@/lib/auth/redirects'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -28,9 +29,10 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (isProtectedRoute(pathname) && !user) {
-    const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = '/login'
-    loginUrl.searchParams.set('next', pathname)
+    const loginUrl = new URL(
+      buildLoginRedirectPath(pathname, request.nextUrl.search),
+      request.url
+    )
     return NextResponse.redirect(loginUrl)
   }
 

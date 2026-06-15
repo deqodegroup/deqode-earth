@@ -10,6 +10,8 @@ describe('isProtectedRoute', () => {
   it('coastline is protected', () => expect(isProtectedRoute('/niue/coastline')).toBe(true))
   it('ocean is protected', () => expect(isProtectedRoute('/palau/ocean')).toBe(true))
   it('reports is protected', () => expect(isProtectedRoute('/fiji/reports')).toBe(true))
+  it('RMAC workspace is protected', () => expect(isProtectedRoute('/rmac/alofi-south')).toBe(true))
+  it('RMAC insights are protected', () => expect(isProtectedRoute('/rmac/alofi-south/insights')).toBe(true))
 })
 
 describe('isAdminRoute', () => {
