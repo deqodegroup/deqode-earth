@@ -11,38 +11,9 @@ interface Props {
 export function SignInForm({ next = '/dashboard' }: Props) {
   const redirectTo = sanitizeRedirectPath(next)
   const [mode, setMode] = useState<'signin' | 'forgot' | 'sent'>('signin')
-  const [signInError, setSignInError] = useState<string | null>(null)
-  const [signInLoading, setSignInLoading] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
   const [resetEmail, setResetEmail] = useState('')
   const [resetLoading, setResetLoading] = useState(false)
-
-  async function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setSignInError(null)
-    setSignInLoading(true)
-
-    const formData = new FormData(e.currentTarget)
-    const email = String(formData.get('email') ?? '').trim()
-    const password = String(formData.get('password') ?? '')
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-    if (error) {
-      setSignInError('Invalid email or password.')
-      setSignInLoading(false)
-      return
-    }
-
-    const { data, error: verificationError } = await supabase.auth.getUser()
-    if (verificationError || !data.user) {
-      await supabase.auth.signOut()
-      setSignInError('Sign-in could not be completed. Please try again.')
-      setSignInLoading(false)
-      return
-    }
-
-    window.location.replace(redirectTo)
-  }
 
   async function handleForgotPassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -60,7 +31,7 @@ export function SignInForm({ next = '/dashboard' }: Props) {
     })
 
     if (error) {
-      setSignInError('Reset email could not be sent. Please try again.')
+      setResetError('Reset email could not be sent. Please try again.')
       setResetLoading(false)
       return
     }
@@ -101,9 +72,9 @@ export function SignInForm({ next = '/dashboard' }: Props) {
           </div>
         </div>
 
-        {signInError && (
+        {resetError && (
           <div className="font-mono text-[0.65rem] tracking-[0.1em] text-coral border border-coral/30 bg-coral/5 rounded px-3 py-2">
-            {signInError}
+            {resetError}
           </div>
         )}
 
@@ -144,7 +115,8 @@ export function SignInForm({ next = '/dashboard' }: Props) {
   }
 
   return (
-    <form onSubmit={handleSignIn} className="flex flex-col gap-5">
+    <form action="/api/auth/login" method="POST" className="flex flex-col gap-5">
+      <input type="hidden" name="next" value={redirectTo} />
       <div>
         <div className="font-display text-xl text-[var(--text)] mb-1">
           Secure Access
@@ -153,12 +125,6 @@ export function SignInForm({ next = '/dashboard' }: Props) {
           DEQODE EARTH partner portal
         </div>
       </div>
-
-      {signInError && (
-        <div className="font-mono text-[0.65rem] tracking-[0.1em] text-coral border border-coral/30 bg-coral/5 rounded px-3 py-2">
-          {signInError}
-        </div>
-      )}
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className="font-mono text-[0.6rem] tracking-[0.15em] uppercase text-[var(--text-dim)]">
@@ -192,19 +158,17 @@ export function SignInForm({ next = '/dashboard' }: Props) {
 
       <button
         type="submit"
-        disabled={signInLoading}
         className="w-full bg-teal text-ocean font-mono text-[0.7rem] tracking-[0.15em] uppercase py-3 rounded hover:bg-teal/90 transition-colors disabled:opacity-50"
       >
-        {signInLoading ? 'Signing in...' : 'Sign In'}
+        Sign In
       </button>
 
       <button
         type="button"
         onClick={() => {
-          setSignInError(null)
+          setResetError(null)
           setMode('forgot')
         }}
-        disabled={signInLoading}
         className="font-mono text-[0.6rem] tracking-[0.1em] uppercase text-[var(--text-dim)] hover:text-teal transition-colors text-center disabled:opacity-50"
       >
         Forgot password

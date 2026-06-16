@@ -83,6 +83,7 @@ npm run test
 - Protected sign-in now authenticates through the Supabase browser client, verifies the user session, then performs a hard redirect.
 - Full protected destinations, including query strings, are preserved through login and unsafe external redirects are rejected.
 - Verification: 91 tests passed, focused auth lint passed, and the full production build passed.
+- Follow-up hardening: login now posts to `/api/auth/login`, which signs in server-side and returns the protected redirect with Supabase cookies on the same response. This removes the browser/server cookie handoff race.
 
 ## Map & UI updates (2026-06-02 — complete)
 
