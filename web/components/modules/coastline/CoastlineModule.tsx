@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { type Location } from "@/lib/locations";
+import { getAnalysisPeriod } from "@/lib/analysis-period";
 import { MetricCards, type CoastlineMetrics } from "./MetricCards";
 
 // Leaflet must not run on the server
@@ -50,6 +51,7 @@ type ThumbState = "idle" | "loading" | "done" | "error";
 const cacheKey = (slug: string) => `deqode-earth-${slug}-coastline`;
 
 export function CoastlineModule({ loc }: { loc: Location }) {
+  const analysisPeriod = getAnalysisPeriod();
   const [state, setState]         = useState<AnalysisState>({ status: "idle" });
   const [thumbState, setThumbState] = useState<ThumbState>("idle");
   const [tileUrl, setTileUrl] = useState<string | undefined>(undefined);
@@ -190,8 +192,8 @@ export function CoastlineModule({ loc }: { loc: Location }) {
           {/* Mission parameters */}
           <div className="flex items-center gap-6 flex-wrap">
             {[
-              { label: "Baseline", value: "2019" },
-              { label: "Current",  value: "2024" },
+              { label: "Baseline", value: String(analysisPeriod.baselineYear) },
+              { label: "Current",  value: String(analysisPeriod.currentYear) },
               { label: "Sensor",   value: "Sentinel-2" },
               { label: "Scale",    value: "30 m" },
               { label: "Index",    value: state.status === "done" && state.data.algorithm ? state.data.algorithm : "MNDWI+Otsu" },

@@ -1,134 +1,274 @@
 import ee from "@google/earthengine";
-import { type Location } from "@/lib/locations";
+import { type Region } from "@/lib/regions";
+import { getAnalysisPeriod } from "@/lib/analysis-period";
 import { type CoastlineMetrics } from "@/components/modules/coastline/MetricCards";
-// Sentinel-2 SR — confirmed coverage across all 8 Pacific SIDS
-// Sentinel-1 SAR has ZERO coverage over Niue, Tuvalu, Kiribati, Marshall Islands
-const BASELINE_START = "2019-01-01";
-const BASELINE_END   = "2019-12-31";  // ~80 cloud-free scenes — fast, stable composite
-const CURRENT_START  = "2024-01-01";
-const CURRENT_END    = "2024-12-31";  // ~85 cloud-free scenes — last full year
 
-const SCALE       = 30;               // 30m — fast, accurate for island-scale change
-const PIXEL_AREA  = SCALE * SCALE;    // m² per pixel (hardcoded avoids ee.Image.pixelArea() overhead)
+type EeImage = any;
+type EeGeometry = any;
+type SlrExposure = Record<"slr_pct_1m" | "slr_pct_2m" | "slr_pct_5m", number | null>;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildRegionAndComposites(loc: Location): { region: any; baseline: any; current: any } {
-  const [lonMin, latMin, lonMax, latMax] = loc.bbox;
-  const region = ee.Geometry.Rectangle([lonMin, latMin, lonMax, latMax]);
+function evaluate<T>(eeObject: { evaluate: (success: (value: T) => void, failure: (error: unknown) => void) => void }) {
+  return new Promise<T>((resolve, reject) => {
+    eeObject.evaluate(resolve, reject);
+  });
+}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function ndwiComposite(start: string, end: string): any {
-    // Median of raw bands first, THEN compute NDWI once on the composite.
-    // This is ~100x faster than mapping NDWI across every scene individually.
-    return ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-      .filterBounds(region)
-      .filterDate(start, end)
-      .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
-      .select(["B3", "B8"])
-      .median()
-      .normalizedDifference(["B3", "B8"])
-      .rename("ndwi");
+function getAnalysisSettings(region: Region) {
+  const lonRange = region.bbox[2] - region.bbox[0];
+  const narrowAtoll = lonRange < 0.35;
+
+  return {
+    scale: narrowAtoll ? 10 : 30,
+    minAreaM2: narrowAtoll ? 1000 : 5000,
+  };
+}
+
+function mndwiComposite(year: number, aoi: EeGeometry): EeImage {
+  return ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+    .filterBounds(aoi)
+    .filterDate(`${year}-01-01`, `${year}-12-31`)
+    .filter(ee.Filter.calendarRange(5, 10, "month"))
+    .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 15))
+    .select(["B3", "B11"])
+    .map((image: EeImage) =>
+      image.normalizedDifference(["B3", "B11"]).rename("mndwi")
+    )
+    .median();
+}
+
+function otsuThreshold(counts: number[], centers: number[]) {
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  if (total === 0) return 0;
+
+  let bestThreshold = centers[0] ?? 0;
+  let bestBss = 0;
+  let weightBg = 0;
+  let meanBgWeighted = 0;
+
+  for (let i = 0; i < counts.length; i += 1) {
+    const weight = counts[i] / total;
+    weightBg += weight;
+    meanBgWeighted += weight * centers[i];
+
+    const weightFg = 1 - weightBg;
+    if (weightBg === 0) continue;
+    if (weightFg === 0) break;
+
+    const fgCounts = counts.slice(i + 1);
+    const fgCenters = centers.slice(i + 1);
+    const fgTotal = fgCounts.reduce((sum, count) => sum + count, 0);
+    const meanFg = fgTotal > 0
+      ? fgCounts.reduce((sum, count, idx) => sum + count * fgCenters[idx], 0) / fgTotal
+      : 0;
+    const meanBg = meanBgWeighted / weightBg;
+    const bss = weightBg * weightFg * (meanBg - meanFg) ** 2;
+
+    if (bss > bestBss) {
+      bestBss = bss;
+      bestThreshold = centers[i];
+    }
+  }
+
+  return bestThreshold;
+}
+
+function shouldUseOtsuFallback(threshold: number, totalCount: number) {
+  return totalCount < 100 || threshold < -0.8 || threshold > 0.8;
+}
+
+async function computeWaterMask(mndwiImage: EeImage, aoi: EeGeometry, scale: number): Promise<EeImage> {
+  const histResult = await evaluate<Record<string, { histogram?: number[]; bucketMeans?: number[] }>>(
+    mndwiImage.reduceRegion({
+      reducer: ee.Reducer.histogram(256),
+      geometry: aoi,
+      scale,
+      maxPixels: 1e9,
+    })
+  );
+
+  const hist = histResult?.mndwi;
+  const counts = hist?.histogram ?? [];
+  const centers = hist?.bucketMeans ?? [];
+
+  if (counts.length === 0 || centers.length === 0) {
+    return mndwiImage.gt(0);
+  }
+
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  const threshold = otsuThreshold(counts, centers);
+
+  return shouldUseOtsuFallback(threshold, total)
+    ? mndwiImage.gt(0)
+    : mndwiImage.gt(threshold);
+}
+
+function applyMinAreaFilter(waterMask: EeImage, minAreaM2: number) {
+  const connectedCount = waterMask.connectedPixelCount(1024, true);
+  const objectArea = connectedCount.multiply(ee.Image.pixelArea());
+
+  return waterMask.updateMask(objectArea.gte(minAreaM2));
+}
+
+async function computeSlrExposure(aoi: EeGeometry) {
+  const srtm = ee.Image("USGS/SRTMGL1_003").select("elevation");
+  const land = srtm.gt(0);
+  const totalResult = await evaluate<Record<string, number>>(
+    land.reduceRegion({
+      reducer: ee.Reducer.sum(),
+      geometry: aoi,
+      scale: 30,
+      maxPixels: 1e9,
+    })
+  );
+  const totalLand = totalResult?.elevation || 1;
+
+  const result: SlrExposure = {
+    slr_pct_1m: null,
+    slr_pct_2m: null,
+    slr_pct_5m: null,
+  };
+
+  for (const threshold of [1, 2, 5] as const) {
+    const exposed = srtm.lte(threshold).and(land);
+    const exposedResult = await evaluate<Record<string, number>>(
+      exposed.reduceRegion({
+        reducer: ee.Reducer.sum(),
+        geometry: aoi,
+        scale: 30,
+        maxPixels: 1e9,
+      })
+    );
+    const count = exposedResult?.elevation || 0;
+    result[`slr_pct_${threshold}m`] = Math.round((count / Math.max(totalLand, 1)) * 1000) / 10;
+  }
+
+  return result;
+}
+
+async function computeCmip6TempDelta(aoi: EeGeometry) {
+  async function meanTemp(start: string, end: string) {
+    const result = await evaluate<Record<string, number>>(
+      ee.ImageCollection("NASA/GDDP-CMIP6")
+        .filter(ee.Filter.eq("model", "ACCESS-CM2"))
+        .filter(ee.Filter.eq("scenario", "ssp585"))
+        .filterDate(start, end)
+        .select("tas")
+        .mean()
+        .reduceRegion({
+          reducer: ee.Reducer.mean(),
+          geometry: aoi,
+          scale: 27500,
+          maxPixels: 1e9,
+        })
+    );
+
+    return result?.tas ?? null;
+  }
+
+  const near = await meanTemp("2020-01-01", "2030-12-31");
+  const far = await meanTemp("2090-01-01", "2100-12-31");
+
+  if (near == null || far == null) return null;
+  return Math.round((far - near) * 10) / 10;
+}
+
+async function buildChangeMasks(region: Region) {
+  const period = getAnalysisPeriod();
+  const { scale, minAreaM2 } = getAnalysisSettings(region);
+  const aoi = ee.Geometry.Rectangle(region.bbox);
+
+  const baseline = mndwiComposite(period.baselineYear, aoi);
+  const current = mndwiComposite(period.currentYear, aoi);
+  const waterBaseline = await computeWaterMask(baseline, aoi, scale);
+  const waterCurrent = await computeWaterMask(current, aoi, scale);
+  const waterBaselineFiltered = applyMinAreaFilter(waterBaseline.selfMask(), minAreaM2).unmask(0);
+  const waterCurrentFiltered = applyMinAreaFilter(waterCurrent.selfMask(), minAreaM2).unmask(0);
+
+  return {
+    period,
+    aoi,
+    scale,
+    erosionMask: waterBaselineFiltered.eq(0).and(waterCurrentFiltered.eq(1)),
+    accretionMask: waterBaselineFiltered.eq(1).and(waterCurrentFiltered.eq(0)),
+    stableMask: waterBaselineFiltered.eq(0).and(waterCurrentFiltered.eq(0)),
+  };
+}
+
+export async function analyseCoastline(region: Region): Promise<CoastlineMetrics> {
+  const { period, aoi, scale, erosionMask, accretionMask, stableMask } = await buildChangeMasks(region);
+  const counts = await evaluate<Record<string, number>>(
+    erosionMask.rename("erosion")
+      .addBands(accretionMask.rename("accretion"))
+      .addBands(stableMask.rename("stable"))
+      .reduceRegion({
+        reducer: ee.Reducer.sum(),
+        geometry: aoi,
+        scale,
+        maxPixels: 1e9,
+      })
+  );
+
+  const erosionCount = counts?.erosion || 0;
+  const accretionCount = counts?.accretion || 0;
+  const stableCount = counts?.stable || 0;
+  const pixelArea = scale * scale;
+  const erosionM2 = erosionCount * pixelArea;
+  const accretionM2 = accretionCount * pixelArea;
+  const stableM2 = stableCount * pixelArea;
+  const totalM2 = erosionM2 + accretionM2 + stableM2;
+  const [lonMin, latMin, lonMax, latMax] = region.bbox;
+  const coastLengthM = Math.sqrt((lonMax - lonMin) ** 2 + (latMax - latMin) ** 2) * 111_000;
+  const erosionM = erosionM2 / Math.max(coastLengthM, 1);
+  const accretionM = accretionM2 / Math.max(coastLengthM, 1);
+  let slr: SlrExposure = { slr_pct_1m: null, slr_pct_2m: null, slr_pct_5m: null };
+  let cmip6TempDelta: number | null = null;
+
+  try {
+    slr = await computeSlrExposure(aoi);
+  } catch {
+    slr = { slr_pct_1m: null, slr_pct_2m: null, slr_pct_5m: null };
+  }
+
+  try {
+    cmip6TempDelta = await computeCmip6TempDelta(aoi);
+  } catch {
+    cmip6TempDelta = null;
   }
 
   return {
-    region,
-    baseline: ndwiComposite(BASELINE_START, BASELINE_END),
-    current:  ndwiComposite(CURRENT_START,  CURRENT_END),
+    erosion_m: Math.round(erosionM * 10) / 10,
+    accretion_m: Math.round(accretionM * 10) / 10,
+    net_change_m: Math.round((accretionM - erosionM) * 10) / 10,
+    stable_pct: totalM2 > 0 ? Math.round((stableM2 / totalM2) * 1000) / 10 : 0,
+    erosion_m2: Math.round(erosionM2),
+    accretion_m2: Math.round(accretionM2),
+    period_start: String(period.baselineYear),
+    period_end: String(period.currentYear),
+    algorithm: "MNDWI+Otsu",
+    mapImageUrl: "",
+    ...slr,
+    cmip6_temp_delta_c: cmip6TempDelta,
   };
 }
 
-/**
- * Coastal change via Sentinel-2 NDWI.
- * NDWI = (Green B3 - NIR B8) / (Green B3 + NIR B8)
- * > 0 = water,  ≤ 0 = land
- * Single multiband reduceRegion — one GEE round-trip.
- */
-export async function analyseCoastline(loc: Location): Promise<CoastlineMetrics> {
-  const { region, baseline, current } = buildRegionAndComposites(loc);
+export async function generateChangeTileUrl(region: Region) {
+  const { aoi, erosionMask, accretionMask } = await buildChangeMasks(region);
+  const classified = erosionMask.multiply(1)
+    .add(accretionMask.multiply(2))
+    .selfMask();
 
-  const waterBaseline = baseline.gt(0);  // NDWI > 0 = water
-  const waterCurrent  = current.gt(0);
+  const mapId = classified.getMapId({
+    min: 1,
+    max: 2,
+    palette: ["E05B4B", "4CB9C0"],
+    opacity: 0.85,
+  });
 
-  // Land→water = erosion | water→land = accretion | land→land = stable
-  const erosionMask   = waterBaseline.eq(0).and(waterCurrent.eq(1)).rename("erosion");
-  const accretionMask = waterBaseline.eq(1).and(waterCurrent.eq(0)).rename("accretion");
-  const stableMask    = waterBaseline.eq(0).and(waterCurrent.eq(0)).rename("stable");
-
-  const counts = await new Promise<{ erosion: number; accretion: number; stable: number }>(
-    (resolve, reject) => {
-      erosionMask.addBands(accretionMask).addBands(stableMask)
-        .reduceRegion({
-          reducer: ee.Reducer.sum(),
-          geometry: region,
-          scale:     SCALE,
-          maxPixels: 1e9,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        }).evaluate((result: any, err: any) => {
-          if (err) return reject(new Error(String(err)));
-          resolve({
-            erosion:   result?.erosion   ?? 0,
-            accretion: result?.accretion ?? 0,
-            stable:    result?.stable    ?? 0,
-          });
-        });
-    }
-  );
-
-  const [lonMin, latMin, lonMax, latMax] = loc.bbox;
-  const erosion_m2   = counts.erosion   * PIXEL_AREA;
-  const accretion_m2 = counts.accretion * PIXEL_AREA;
-  const totalM2      = (counts.erosion + counts.accretion + counts.stable) * PIXEL_AREA;
-
-  const coastLengthM = Math.sqrt((lonMax - lonMin) ** 2 + (latMax - latMin) ** 2) * 111_000;
-  const erosion_m    = erosion_m2   / Math.max(coastLengthM, 1);
-  const accretion_m  = accretion_m2 / Math.max(coastLengthM, 1);
-  const net_change_m = accretion_m  - erosion_m;
-  const stable_pct   = totalM2 > 0 ? ((counts.stable * PIXEL_AREA) / totalM2) * 100 : 0;
+  const tileUrl = `https://earthengine.googleapis.com/map/${mapId.mapid}/{z}/{x}/{y}?token=${mapId.token}`;
 
   return {
-    erosion_m:    Math.round(erosion_m    * 10) / 10,
-    accretion_m:  Math.round(accretion_m  * 10) / 10,
-    net_change_m: Math.round(net_change_m * 10) / 10,
-    stable_pct:   Math.round(stable_pct   * 10) / 10,
-    erosion_m2:   Math.round(erosion_m2),
-    accretion_m2: Math.round(accretion_m2),
-    period_start: "2019",
-    period_end:   "2024",
-    mapImageUrl:  "",
+    tileUrl,
+    bounds: region.bbox,
+    aoi,
   };
-}
-
-/**
- * False-colour change map — true-colour Sentinel-2 base + red erosion + teal accretion overlay.
- */
-export async function generateMapThumb(loc: Location): Promise<string> {
-  const { region, baseline, current } = buildRegionAndComposites(loc);
-
-  const waterBaseline = baseline.gt(0);
-  const waterCurrent  = current.gt(0);
-  const erosionMask   = waterBaseline.eq(0).and(waterCurrent.eq(1));
-  const accretionMask = waterBaseline.eq(1).and(waterCurrent.eq(0));
-
-  // True-colour RGB base — median of raw bands directly (no per-scene map)
-  const s2Current = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-    .filterBounds(region)
-    .filterDate(CURRENT_START, CURRENT_END)
-    .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
-    .select(["B4", "B3", "B2"])
-    .median();
-
-  const baseViz      = s2Current.visualize({ bands: ["B4", "B3", "B2"], min: 0, max: 3000 });
-  const erosionViz   = erosionMask.selfMask().visualize({ palette: ["#E05B4B"] });
-  const accretionViz = accretionMask.selfMask().visualize({ palette: ["#4CB9C0"] });
-  const mapImage     = ee.ImageCollection([baseViz, erosionViz, accretionViz]).mosaic();
-
-  return new Promise((resolve, reject) => {
-    mapImage.getThumbURL(
-      { region, dimensions: 800, format: "jpg" },
-      (url: string, err: string) => {
-        if (err) return reject(new Error(String(err)));
-        resolve(url);
-      }
-    );
-  });
 }

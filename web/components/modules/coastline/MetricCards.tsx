@@ -187,7 +187,7 @@ export function MetricCards({ data }: { data: CoastlineMetrics }) {
       label: "Stable Shoreline",
       value: data.stable_pct.toFixed(0),
       unit: "%",
-      sub: "unchanged 2019–2024",
+      sub: `unchanged ${data.period_start}-${data.period_end}`,
       accentColor: "#D4A55A",
       trend: "neutral" as const,
     },
