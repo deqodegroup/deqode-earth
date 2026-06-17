@@ -1,5 +1,23 @@
 import { describe, it, expect } from 'vitest'
 import { isProtectedRoute, isAdminRoute } from './lib/auth/route-guards'
+import { getRootAuthCodeRedirectUrl } from './lib/auth/recovery-redirect'
+
+describe('getRootAuthCodeRedirectUrl', () => {
+  it('redirects legacy root recovery links to /auth/callback', () => {
+    const url = new URL('https://deqode-earth.vercel.app/?code=test-reset-code')
+    const result = getRootAuthCodeRedirectUrl(url)
+    expect(result?.pathname).toBe('/auth/callback')
+    expect(result?.search).toBe('?code=test-reset-code&next=%2Fauth%2Freset&type=recovery')
+  })
+
+  it('ignores requests without a code param', () => {
+    expect(getRootAuthCodeRedirectUrl(new URL('https://deqode-earth.vercel.app/'))).toBeNull()
+  })
+
+  it('ignores non-root paths', () => {
+    expect(getRootAuthCodeRedirectUrl(new URL('https://deqode-earth.vercel.app/dashboard?code=x'))).toBeNull()
+  })
+})
 
 describe('isProtectedRoute', () => {
   it('homepage is public', () => expect(isProtectedRoute('/')).toBe(false))

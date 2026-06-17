@@ -2,8 +2,14 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isProtectedRoute, isAdminRoute } from '@/lib/auth/route-guards'
 import { buildLoginRedirectPath } from '@/lib/auth/redirects'
+import { getRootAuthCodeRedirectUrl } from '@/lib/auth/recovery-redirect'
 
 export async function middleware(request: NextRequest) {
+  const rootAuthCodeRedirectUrl = getRootAuthCodeRedirectUrl(request.nextUrl)
+  if (rootAuthCodeRedirectUrl) {
+    return NextResponse.redirect(rootAuthCodeRedirectUrl)
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
