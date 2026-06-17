@@ -2,8 +2,11 @@
 Copernicus Marine Service ocean pH (OMI_HEALTH) -> Supabase ocean_metrics
 Global mean surface ocean pH, yearly resolution, 1985-present.
 
-Dataset: GLOBAL_OMI_HEALTH_carbon_ph_area_averaged
+Dataset: global_omi_health_carbon_ph_area_averaged (product: GLOBAL_OMI_HEALTH_carbon_ph_area_averaged)
 DOI: 10.48670/moi-00224
+Confirmed live against the catalogue via `copernicusmarine describe` on 2026-06-17:
+variables are "ph" (sea_water_ph_reported_on_total_scale) and "ph_uncertainty",
+yearly resolution, last value as of that check was 2024-01-01.
 This is a GLOBAL area-averaged index, not region-specific -- there is no
 verified per-SIDS gridded pH product wired up yet, so the same global value
 is applied to every region. Acidification is a slow, globally-coupled signal,
@@ -27,7 +30,8 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
-DATASET_ID = "GLOBAL_OMI_HEALTH_carbon_ph_area_averaged"
+DATASET_ID = "global_omi_health_carbon_ph_area_averaged"
+VARIABLE_NAME = "ph"
 
 
 def fetch_latest_ph(username: str, password: str) -> tuple[str, float] | None:
@@ -51,9 +55,7 @@ def fetch_latest_ph(username: str, password: str) -> tuple[str, float] | None:
         if not ds.data_vars:
             return None
 
-        # Discover the data variable generically rather than guessing its
-        # exact name -- the product description doesn't disclose it.
-        var_name = list(ds.data_vars)[0]
+        var_name = VARIABLE_NAME if VARIABLE_NAME in ds.data_vars else list(ds.data_vars)[0]
         series = ds[var_name].to_series().dropna()
         if series.empty:
             return None
