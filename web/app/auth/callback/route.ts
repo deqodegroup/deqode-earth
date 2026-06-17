@@ -43,7 +43,8 @@ export async function GET(request: NextRequest) {
   // For password recovery, redirect to the reset form
   const isRecovery = searchParams.get('type') === 'recovery'
   if (isRecovery) {
-    return NextResponse.redirect(`${origin}/auth/reset`)
+    const resetPath = next.startsWith('/auth/reset') ? next : '/auth/reset'
+    return NextResponse.redirect(`${origin}${resetPath}`)
   }
 
   return NextResponse.redirect(`${origin}${next}`)

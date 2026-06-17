@@ -1,17 +1,17 @@
 'use client'
 import { useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 
-export function ResetPasswordForm() {
-  const router = useRouter()
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
+export function ResetPasswordForm({ next = '/dashboard' }: { next?: string }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleReset(e: React.FormEvent) {
+  async function handleReset(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const password = String(formData.get('password') ?? '')
+    const confirm = String(formData.get('confirm') ?? '')
+
     if (password !== confirm) { setError('Passwords do not match.'); return }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
     setLoading(true)
@@ -19,9 +19,7 @@ export function ResetPasswordForm() {
     const supabase = createSupabaseBrowserClient()
     const { error } = await supabase.auth.updateUser({ password })
     if (error) { setError('Failed to set password. Please try again or request a new link.'); setLoading(false); return }
-    router.push('/dashboard')
-    router.refresh()
-    setLoading(false)
+    window.location.href = next
   }
 
   return (
@@ -39,14 +37,16 @@ export function ResetPasswordForm() {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="password" className="font-mono text-[0.6rem] tracking-[0.15em] uppercase text-[var(--text-dim)]">New password</label>
-        <input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)}
+        <input id="password" name="password" type="password" required minLength={8}
+          onInput={() => setError(null)}
           autoComplete="new-password"
           className="bg-ocean border border-[var(--border)] rounded px-3 py-2.5 font-sans text-sm text-[var(--text)] focus:outline-none focus:border-teal/60 transition-colors" />
       </div>
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="confirm" className="font-mono text-[0.6rem] tracking-[0.15em] uppercase text-[var(--text-dim)]">Confirm password</label>
-        <input id="confirm" type="password" required value={confirm} onChange={e => setConfirm(e.target.value)}
+        <input id="confirm" name="confirm" type="password" required minLength={8}
+          onInput={() => setError(null)}
           autoComplete="new-password"
           className="bg-ocean border border-[var(--border)] rounded px-3 py-2.5 font-sans text-sm text-[var(--text)] focus:outline-none focus:border-teal/60 transition-colors" />
       </div>

@@ -88,6 +88,13 @@ def fetch_glofas_depth(ee, return_period: int) -> float | None:
 
 
 def main():
+    if not os.environ.get("GEE_B64_KEY"):
+        log.warning(
+            "SKIP: jrc_glofas -- GEE_B64_KEY is not configured; "
+            "the static hazard dataset was not refreshed"
+        )
+        return
+
     try:
         ee = init_gee()
     except Exception as e:

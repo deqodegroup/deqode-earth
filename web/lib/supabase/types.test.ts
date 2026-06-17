@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { CAN_RUN_ANALYSIS, CAN_DOWNLOAD, PROTECTED_ROLE_ROUTES } from './types'
+import { CAN_RUN_ANALYSIS, CAN_DOWNLOAD, CAN_REVIEW_RMAC, PROTECTED_ROLE_ROUTES } from './types'
 
 describe('role constants', () => {
   it('viewer cannot run analysis', () => {
@@ -22,5 +22,11 @@ describe('role constants', () => {
   })
   it('admin can download', () => {
     expect(CAN_DOWNLOAD.includes('admin')).toBe(true)
+  })
+  it('viewer cannot review RMAC activities', () => {
+    expect(CAN_REVIEW_RMAC.includes('viewer')).toBe(false)
+  })
+  it('analyst can review RMAC activities', () => {
+    expect(CAN_REVIEW_RMAC.includes('analyst')).toBe(true)
   })
 })

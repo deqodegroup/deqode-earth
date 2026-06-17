@@ -1,4 +1,4 @@
-export const PROTECTED_PREFIXES = ['/dashboard', '/admin']
+export const PROTECTED_PREFIXES = ['/dashboard', '/admin', '/rmac']
 export const PROTECTED_PATTERNS = [
   /^\/[^/]+\/coastline/,
   /^\/[^/]+\/ocean/,

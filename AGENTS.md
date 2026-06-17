@@ -52,6 +52,39 @@ npm run test
 - For UI, preserve DEQODE quality standards: no generic starter-template surfaces, no default Inter/Roboto primary type, and no low-effort gradient-only identity.
 - Update this file if durable project facts change.
 
+## Data Operations (2026-06-15)
+- Live forecasts and gauges run every 6 hours.
+- Brisbane flood mapping runs weekly.
+- IDMC, World Bank, PDH.stat, Deltares, and JRC baselines run monthly.
+- Historical flood extents are manual-only and retained permanently.
+- Open-Meteo history is retained for 30 days; WMIP gauge history for 90 days.
+- Failed and abandoned analysis-cache jobs expire after 30 and 7 days respectively.
+- Source refreshes must pass coverage checks before replacing the last known-good snapshot.
+- `/api/data-health` is the product-facing source freshness and failure contract.
+
+## Alofi South RMAC MVP (2026-06-15)
+- Showcase route: `/rmac/alofi-south`.
+- Mobile field workflow records management-plan action, narrative, people, spend, location, evidence photos, consent, and reporting visibility.
+- Written drafts recover from device storage after a dropped connection.
+- Committee roles (`analyst`, `admin`, `deqode_admin`) can approve or return evidence; contributors can correct and resubmit returned records under the same reference.
+- Supabase tables: `rmac_activities`, `rmac_activity_evidence`, and immutable `rmac_activity_audit`; private evidence bucket: `rmac-evidence`.
+- All mutations run through authenticated server routes with explicit organisation/ownership checks. Direct authenticated table writes are revoked.
+- Database migrations `005` through `007` were applied to production on 2026-06-15.
+- Verification: 81 tests passed, focused lint passed, and the full Next.js production build passed.
+- Earth client intelligence route: `/rmac/alofi-south/insights`; approved records only, with map, management-plan progress, metrics, evidence timeline and reporting filters.
+- Public sample preview: `/showcase/alofi-south/insights`; isolated sample data only.
+
+## Password Recovery (2026-06-15)
+- Reset-password matching reads submitted DOM values so browser/password-manager autofill cannot leave React state stale.
+- Recovery links preserve the original protected destination; RMAC resets return to `/rmac/alofi-south`.
+- Public read-only RMAC showcase: `/showcase/alofi-south`; sample data only and all mutations are intercepted.
+
+## Sign-In Reliability (2026-06-16)
+- Protected sign-in now authenticates through the Supabase browser client, verifies the user session, then performs a hard redirect.
+- Full protected destinations, including query strings, are preserved through login and unsafe external redirects are rejected.
+- Verification: 91 tests passed, focused auth lint passed, and the full production build passed.
+- Follow-up hardening: login now posts to `/api/auth/login`, which signs in server-side and returns the protected redirect with Supabase cookies on the same response. This removes the browser/server cookie handoff race.
+
 ## Map & UI updates (2026-06-02 — complete)
 
 ### Changes

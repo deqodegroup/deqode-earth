@@ -8,6 +8,7 @@ Economies: TV, KI, VU, SB, FJ, MH, TO, WS, NU, PG
 pip install requests
 """
 import os
+import sys
 import logging
 import requests
 from supabase import create_client
@@ -78,16 +79,31 @@ def main():
                     "country_code": economy,
                     "country_name": ECONOMY_NAMES.get(economy, economy),
                     "year": year,
+                    "event_date": None,
                     "net_migration": net_migration,
                     "population": population,
                     "data_type": "annual",
                 })
 
-    if records:
-        SUPABASE.table("displacement_records").upsert(records).execute()
-        log.info(f"OK: worldbank -- {len(records)} annual records upserted")
-    else:
-        log.warning("WARN: worldbank -- no records to upsert")
+    countries = {record["country_code"] for record in records}
+    years = {record["year"] for record in records}
+    if len(countries) < 8 or len(years) < 20:
+        log.error(
+            "FAIL: worldbank validation rejected %s countries across %s years",
+            len(countries),
+            len(years),
+        )
+        sys.exit(1)
+
+    try:
+        result = SUPABASE.rpc(
+            "replace_displacement_source_records",
+            {"p_source": "worldbank", "p_records": records},
+        ).execute()
+        log.info(f"OK: worldbank -- {result.data} validated annual records replaced")
+    except Exception as e:
+        log.error(f"ERROR: worldbank replacement failed: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

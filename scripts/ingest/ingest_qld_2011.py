@@ -16,14 +16,12 @@ import os
 import sys
 
 import geopandas as gpd
-from shapely.geometry import MultiPolygon
+from shapely.geometry import MultiPolygon, box
 from shapely.ops import unary_union
 from supabase import create_client
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 log = logging.getLogger(__name__)
-
-SUPABASE = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
 
 # QLD ArcGIS layer: "2011 Floodline Queensland towns - January".
 # Geometry is the Grantham / Lockyer Valley bbox projected to Web Mercator.
@@ -49,14 +47,15 @@ GRANTHAM_BBOX = {
 
 
 def filter_to_grantham(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    bounds = gdf.geometry.bounds
-    mask = (
-        (bounds["minx"] >= GRANTHAM_BBOX["minx"])
-        & (bounds["maxx"] <= GRANTHAM_BBOX["maxx"])
-        & (bounds["miny"] >= GRANTHAM_BBOX["miny"])
-        & (bounds["maxy"] <= GRANTHAM_BBOX["maxy"])
+    grantham_bounds = box(
+        GRANTHAM_BBOX["minx"],
+        GRANTHAM_BBOX["miny"],
+        GRANTHAM_BBOX["maxx"],
+        GRANTHAM_BBOX["maxy"],
     )
-    return gdf[mask].copy()
+    intersecting = gdf[gdf.geometry.intersects(grantham_bounds)].copy()
+    intersecting.geometry = intersecting.geometry.intersection(grantham_bounds)
+    return intersecting[~intersecting.geometry.is_empty].copy()
 
 
 def ensure_multipolygon(geom):
@@ -71,6 +70,10 @@ def ensure_multipolygon(geom):
 
 def main():
     try:
+        supabase = create_client(
+            os.environ["SUPABASE_URL"],
+            os.environ["SUPABASE_SERVICE_KEY"],
+        )
         log.info("Fetching QLD 2011 flood extent GeoJSON from ArcGIS service")
         gdf = gpd.read_file(QLD_2011_GEOJSON_URL)
         log.info("GeoJSON loaded: %s features, CRS=%s", len(gdf), gdf.crs)
@@ -108,7 +111,7 @@ def main():
             }
         ]
 
-        SUPABASE.table("flood_zones").upsert(
+        supabase.table("flood_zones").upsert(
             records,
             on_conflict="source,flood_class,council",
         ).execute()

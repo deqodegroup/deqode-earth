@@ -69,7 +69,8 @@ def fetch_country(iso3: str) -> list:
 
 
 def main():
-    total = 0
+    all_records = []
+    successful_countries = 0
     for iso3, iso2, country_name in PACIFIC_COUNTRIES:
         try:
             events = fetch_country(iso3)
@@ -100,16 +101,28 @@ def main():
                 })
 
             if records:
-                SUPABASE.table("displacement_records").upsert(records).execute()
-                total += len(records)
-                log.info(f"OK: idmc -- {country_name} ({iso2}): {len(records)} events upserted")
+                all_records.extend(records)
+                successful_countries += 1
+                log.info(f"OK: idmc -- {country_name} ({iso2}): {len(records)} events parsed")
             else:
                 log.info(f"OK: idmc -- {country_name} ({iso2}): no events found")
 
         except Exception as e:
             log.warning(f"WARN: idmc -- {country_name} ({iso3}) failed: {e}")
 
-    log.info(f"OK: idmc total -- {total} records upserted")
+    if successful_countries < 8 or not all_records:
+        log.error(
+            "FAIL: idmc validation rejected %s countries and %s records",
+            successful_countries,
+            len(all_records),
+        )
+        sys.exit(1)
+
+    result = SUPABASE.rpc(
+        "replace_displacement_source_records",
+        {"p_source": "idmc", "p_records": all_records},
+    ).execute()
+    log.info(f"OK: idmc total -- {result.data} validated records replaced")
 
 
 if __name__ == "__main__":

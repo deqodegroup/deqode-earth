@@ -2,8 +2,27 @@ name: Nightly Data Ingestion
 
 on:
   schedule:
-    - cron: '0 18 * * *'   # 04:00 AEST (UTC+10)
-  workflow_dispatch:         # Manual trigger for testing
+    - cron: '17 */6 * * *'   # Live forecasts and gauges every 6 hours
+    - cron: '30 18 * * 0'    # Flood mapping weekly, Monday 04:30 AEST
+    - cron: '0 19 1 * *'     # Regional baselines monthly, day 2 at 05:00 AEST
+  workflow_dispatch:
+    inputs:
+      dataset:
+        description: Dataset to ingest
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - live
+          - bcc
+          - qld_2011
+          - idmc
+          - worldbank
+          - pdh_stat
+          - deltares
+          - jrc_glofas
+          - retention
 
 env:
   SUPABASE_URL: https://vofpmfxqlflabpdackls.supabase.co
@@ -11,123 +30,172 @@ env:
 jobs:
   ingest-bcc-flood:
     name: BCC Flood Awareness
+    if: ${{ github.event.schedule == '30 18 * * 0' || (github.event_name == 'workflow_dispatch' && (inputs.dataset == 'all' || inputs.dataset == 'bcc')) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_bcc_flood.py
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Record source health
+        if: ${{ always() }}
+        run: python scripts/ingest/record_source_health.py bcc "${{ job.status }}" weekly
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-qld-2011:
     name: QLD 2011 Flood Extent
+    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.dataset == 'all' || inputs.dataset == 'qld_2011') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_qld_2011.py
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Record source health
+        if: ${{ always() }}
+        run: python scripts/ingest/record_source_health.py qld_2011 "${{ job.status }}" manual
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-wmip-gauges:
     name: QLD WMIP Live Gauges
+    if: ${{ github.event.schedule == '17 */6 * * *' || (github.event_name == 'workflow_dispatch' && (inputs.dataset == 'all' || inputs.dataset == 'live')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_wmip_gauges.py
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Record source health
+        if: ${{ always() }}
+        run: python scripts/ingest/record_source_health.py wmip "${{ job.status }}" 6-hourly
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-idmc:
     name: IDMC Pacific Displacement
+    if: ${{ github.event.schedule == '0 19 1 * *' || (github.event_name == 'workflow_dispatch' && (inputs.dataset == 'all' || inputs.dataset == 'idmc')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_idmc.py
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Record source health
+        if: ${{ always() }}
+        run: python scripts/ingest/record_source_health.py idmc "${{ job.status }}" monthly
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-worldbank:
     name: World Bank Migration Data
+    if: ${{ github.event.schedule == '0 19 1 * *' || (github.event_name == 'workflow_dispatch' && (inputs.dataset == 'all' || inputs.dataset == 'worldbank')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_worldbank.py
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Record source health
+        if: ${{ always() }}
+        run: python scripts/ingest/record_source_health.py worldbank "${{ job.status }}" monthly
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-open-meteo:
     name: Open-Meteo Brisbane Forecast
+    if: ${{ github.event.schedule == '17 */6 * * *' || (github.event_name == 'workflow_dispatch' && (inputs.dataset == 'all' || inputs.dataset == 'live')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_open_meteo.py
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Record source health
+        if: ${{ always() }}
+        run: python scripts/ingest/record_source_health.py open_meteo "${{ job.status }}" 6-hourly
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-pdh-stat:
     name: PDH.stat Pacific Population Projections
+    if: ${{ github.event.schedule == '0 19 1 * *' || (github.event_name == 'workflow_dispatch' && (inputs.dataset == 'all' || inputs.dataset == 'pdh_stat')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_pdh_stat.py
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Record source health
+        if: ${{ always() }}
+        run: python scripts/ingest/record_source_health.py pdh_stat "${{ job.status }}" monthly
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-deltares:
     name: Deltares SIDS Coastal Inundation Depth
+    if: ${{ github.event.schedule == '0 19 1 * *' || (github.event_name == 'workflow_dispatch' && (inputs.dataset == 'all' || inputs.dataset == 'deltares')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_deltares.py
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Record source health
+        if: ${{ always() }}
+        run: python scripts/ingest/record_source_health.py deltares "${{ job.status }}" monthly
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   ingest-jrc-glofas:
     name: JRC GloFAS Brisbane Flood Depth
+    if: ${{ github.event.schedule == '0 19 1 * *' || (github.event_name == 'workflow_dispatch' && (inputs.dataset == 'all' || inputs.dataset == 'jrc_glofas')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: pip install -r scripts/ingest/requirements.txt
@@ -135,3 +203,23 @@ jobs:
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           GEE_B64_KEY: ${{ secrets.GEE_B64_KEY }}
+      - name: Record source health
+        if: ${{ always() }}
+        run: python scripts/ingest/record_source_health.py jrc_glofas "${{ job.status }}" monthly
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+  apply-retention:
+    name: Apply Data Retention
+    if: ${{ github.event.schedule == '30 18 * * 0' || (github.event_name == 'workflow_dispatch' && (inputs.dataset == 'all' || inputs.dataset == 'retention')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install -r scripts/ingest/requirements.txt
+      - run: python scripts/ingest/apply_retention.py
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}

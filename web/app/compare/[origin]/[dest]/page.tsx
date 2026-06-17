@@ -68,7 +68,7 @@ export default async function ComparePage({ params }: Props) {
           destFloodDepth={destFloodDepth}
         />
       </main>
-      <StatusStrip demoMode />
+      <StatusStrip />
     </div>
   );
 }
