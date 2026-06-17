@@ -1,5 +1,9 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type { Region } from "@/lib/regions";
 import { ModuleShell, MetricCard } from "./ModuleShell";
+import type { OceanSummary } from "@/lib/ocean/metrics";
 
 const OCEAN_DATA: Record<string, { sst: string; acidification: string; note: string }> = {
   tuvalu:             { sst: "+0.9°C since 1985", acidification: "pH 8.07 (↓0.11 since 1850)", note: "Elevated bleaching risk season: Nov–Apr" },
@@ -20,22 +24,79 @@ const DEFAULT_OCEAN = {
   note: "",
 };
 
+const TREND_ARROW: Record<string, string> = {
+  rising: "↑",
+  falling: "↓",
+  stable: "→",
+  unknown: "",
+};
+
+function formatSst(summary: OceanSummary["sst"]): string {
+  if (summary.latestValue === null) return "";
+  const arrow = TREND_ARROW[summary.trend.direction];
+  const delta =
+    summary.trend.deltaValue !== null
+      ? ` (${summary.trend.deltaValue > 0 ? "+" : ""}${summary.trend.deltaValue}°C since ${summary.trend.comparedTo})`
+      : "";
+  return `${summary.latestValue.toFixed(2)}°C ${arrow}${delta}`;
+}
+
+function formatPh(summary: OceanSummary["ph"]): string {
+  if (summary.latestValue === null) return "";
+  const arrow = TREND_ARROW[summary.trend.direction];
+  const delta =
+    summary.trend.deltaValue !== null
+      ? ` (${summary.trend.deltaValue > 0 ? "+" : ""}${summary.trend.deltaValue} since ${summary.trend.comparedTo})`
+      : "";
+  return `pH ${summary.latestValue.toFixed(2)} ${arrow}${delta}`;
+}
+
 export function OceanModule({ region }: { region: Region }) {
-  const data = OCEAN_DATA[region.slug] ?? DEFAULT_OCEAN;
+  const [live, setLive] = useState<OceanSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/ocean?region=${region.slug}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (json && (json.sst?.latestValue !== null || json.ph?.latestValue !== null)) {
+          setLive({ sst: json.sst, ph: json.ph });
+        } else {
+          setLive(null);
+        }
+      })
+      .catch(() => setLive(null))
+      .finally(() => setLoading(false));
+  }, [region.slug]);
+
+  const fallback = OCEAN_DATA[region.slug] ?? DEFAULT_OCEAN;
+  const liveSst = live ? formatSst(live.sst) : "";
+  const livePh = live ? formatPh(live.ph) : "";
 
   return (
     <ModuleShell
       region={region}
       moduleLabel="Ocean Intelligence"
-      sourceNote="NOAA CoralTemp · SOCAT · IPCC AR6"
+      sourceNote={
+        live
+          ? "NOAA CoralTemp (live) · Copernicus Marine Service"
+          : "NOAA CoralTemp · SOCAT · IPCC AR6"
+      }
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <MetricCard label="Sea Surface Temperature Trend" value={data.sst} />
-        <MetricCard label="Ocean Acidification (pH)" value={data.acidification} />
+        <MetricCard
+          label="Sea Surface Temperature"
+          value={loading ? "Loading…" : liveSst || fallback.sst}
+        />
+        <MetricCard
+          label="Ocean Acidification"
+          value={loading ? "Loading…" : livePh || fallback.acidification}
+        />
       </div>
-      {data.note && (
+      {fallback.note && (
         <p className="font-mono text-[0.6rem] tracking-[0.1em] text-[var(--text-dim)] mt-4 border-l-2 border-teal/30 pl-3">
-          {data.note}
+          {fallback.note}
         </p>
       )}
     </ModuleShell>

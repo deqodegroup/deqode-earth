@@ -22,6 +22,8 @@ on:
           - pdh_stat
           - deltares
           - jrc_glofas
+          - ocean_sst
+          - ocean_ph
           - retention
 
 env:
@@ -200,6 +202,53 @@ jobs:
           python-version: '3.11'
       - run: pip install -r scripts/ingest/requirements.txt
       - run: python scripts/ingest/ingest_jrc_glofas.py
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Record source health
+        if: ${{ always() }}
+        run: python scripts/ingest/record_source_health.py jrc_glofas "${{ job.status }}" monthly
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+  ingest-ocean-sst:
+    name: NOAA CoralTemp Sea Surface Temperature
+    if: ${{ github.event.schedule == '17 */6 * * *' || (github.event_name == 'workflow_dispatch' && (inputs.dataset == 'all' || inputs.dataset == 'live' || inputs.dataset == 'ocean_sst')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install -r scripts/ingest/requirements.txt
+      - run: python scripts/ingest/ingest_ocean_sst.py
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Record source health
+        if: ${{ always() }}
+        run: python scripts/ingest/record_source_health.py noaa_coraltemp "${{ job.status }}" 6-hourly
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+  ingest-ocean-ph:
+    name: Copernicus Marine Ocean pH
+    if: ${{ github.event.schedule == '0 19 1 * *' || (github.event_name == 'workflow_dispatch' && (inputs.dataset == 'all' || inputs.dataset == 'ocean_ph')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install -r scripts/ingest/requirements.txt
+      - run: python scripts/ingest/ingest_ocean_ph.py
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          COPERNICUS_MARINE_USERNAME: ${{ secrets.COPERNICUS_MARINE_USERNAME }}
+          COPERNICUS_MARINE_PASSWORD: ${{ secrets.COPERNICUS_MARINE_PASSWORD }}
+      - name: Record source health
+        if: ${{ always() }}
+        run: python scripts/ingest/record_source_health.py copernicus_marine "${{ job.status }}" monthly
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           GEE_B64_KEY: ${{ secrets.GEE_B64_KEY }}

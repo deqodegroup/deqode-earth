@@ -62,6 +62,23 @@ npm run test
 - Source refreshes must pass coverage checks before replacing the last known-good snapshot.
 - `/api/data-health` is the product-facing source freshness and failure contract.
 
+## Analysis route migration + map config fix (2026-06-17)
+- `web/api/analyse.py` and `web/api/map-thumb.py` (old Vercel Python functions) replaced by `web/app/api/analyse/route.ts` and `web/app/api/map-thumb/route.ts` Next.js route handlers, backed by `web/lib/gee/coastline.ts` and `web/lib/analysis-period.ts`.
+- `web/lib/map-config.ts` — fixed a stale `server.arcgisonline.com` subdomain for the `labels` tile layer (now `services.arcgisonline.com`); kept `darkTerrain` pointing at Canvas/World_Dark_Gray_Base.
+- This work existed only as uncommitted local changes for ~2 weeks while `origin/main` advanced independently (auth rewrite, RMAC feature). Reconciled via merge on 2026-06-17 — verified 94/94 tests, clean build, both lineages intact.
+- `web/lib/auth/recovery-redirect.ts` (legacy root `/?code=...` Supabase recovery link catch in `middleware.ts`) was lost as an uncommitted, never-staged file during that reconciliation and had to be reconstructed from documented production behavior. Re-verified against the known test case (`/?code=test-reset-code` → `/auth/callback?code=test-reset-code&next=%2Fauth%2Freset&type=recovery`).
+
+## Ocean Intelligence module — live data (2026-06-17)
+- New table `ocean_metrics` (migration `008`): `source`, `region_slug`, `metric_type` (`sst`|`ph`), `recorded_date`, `value`, `unit`. Public read, service-role write, same RLS pattern as `flood_zones`.
+- `web/lib/ocean/metrics.ts` — pure trend aggregation (rising/falling/stable) shared by the API route; covered by `metrics.test.ts`.
+- `/api/ocean?region=<slug>` reads `ocean_metrics`, returns latest SST + pH plus trend direction/delta.
+- `OceanModule.tsx` fetches live data, falls back to the original hardcoded per-region copy when no live row exists yet (i.e. before the ingest jobs have run or before Copernicus credentials are added).
+- **SST**: `scripts/ingest/ingest_ocean_sst.py` — NOAA Coral Reef Watch CoralTemp via ERDDAP (`oceanwatch.pifsc.noaa.gov`), anonymous, no credential. Runs on the 6-hourly `live` nightly-ingest schedule. Pulls last 14 days per region center point for short-term trend.
+- **pH**: `scripts/ingest/ingest_ocean_ph.py` — Copernicus Marine Service `GLOBAL_OMI_HEALTH_carbon_ph_area_averaged` (yearly, global mean — not region-specific; applied uniformly to all regions as a proxy since acidification is a slow globally-coupled signal and no verified region-specific dataset/variable layout was confirmed). Runs on the monthly nightly-ingest schedule.
+- **Not yet active**: pH ingestion needs `COPERNICUS_MARINE_USERNAME` / `COPERNICUS_MARINE_PASSWORD` repo secrets — free self-service registration at marine.copernicus.eu, same tier of effort as the existing GEE/TOFI access. Script skips cleanly (exit 0) until those secrets exist, mirroring the optional-credential pattern already used for `ingest_jrc_glofas.py` (`GEE_B64_KEY`).
+- Reef, Land, Climate modules remain static/curated — no live source confirmed yet for Reef (NOAA Coral Reef Watch bleaching alerts is the likely candidate) or Land; Climate could reuse the existing CMIP6 GEE pipeline already wired into Coastline rather than a new ingest job.
+- Verification: 101/101 tests passed (7 new), full Next.js production build passed.
+
 ## Alofi South RMAC MVP (2026-06-15)
 - Showcase route: `/rmac/alofi-south`.
 - Mobile field workflow records management-plan action, narrative, people, spend, location, evidence photos, consent, and reporting visibility.
