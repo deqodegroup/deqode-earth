@@ -35,6 +35,24 @@ const MODULES = [
   { id: "displacement", label: "Displacement" },
 ];
 
+const RMAC_LINKS = [
+  {
+    href: "/showcase/alofi-south",
+    label: "Public activity log",
+    description: "Field evidence workflow",
+  },
+  {
+    href: "/showcase/alofi-south/insights",
+    label: "Reporting insights",
+    description: "Approved evidence dashboard",
+  },
+  {
+    href: "/rmac/alofi-south",
+    label: "Committee workspace",
+    description: "Protected review access",
+  },
+];
+
 interface DisplacementData {
   total_displaced: number;
   trend: { year: number; net_migration: number }[];
@@ -70,6 +88,10 @@ function deriveScore(
   }
 
   return FALLBACK_SCORES[slug] ?? 50;
+}
+
+export function shouldShowRmacDropdown(slug: string): boolean {
+  return slug === "niue";
 }
 
 export function IntelligencePanel() {
@@ -175,6 +197,57 @@ export function IntelligencePanel() {
           <StatCell label="Flood Depth (100yr)" value={depthDisplay} />
         </div>
       </div>
+
+      {shouldShowRmacDropdown(region.slug) && (
+        <div className="p-4 border-b border-[var(--border)]">
+          <details
+            className="group rounded border border-[var(--gold)]/35 bg-[var(--gold)]/[0.06]
+                       focus-within:border-[var(--gold)]"
+          >
+            <summary
+              className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3
+                         px-3 py-2.5 text-left transition-colors duration-150
+                         hover:bg-[var(--gold)]/[0.08]
+                         focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+                         focus-visible:outline-[var(--gold)]"
+            >
+              <span>
+                <span className="block font-mono text-[0.5rem] tracking-[0.2em] uppercase text-[var(--gold)]">
+                  Alofi South RMAC
+                </span>
+                <span className="mt-1 block font-syne text-xs text-[var(--text)]">
+                  Community evidence and management-plan reporting
+                </span>
+              </span>
+              <span
+                aria-hidden="true"
+                className="font-mono text-sm text-[var(--gold)] transition-transform duration-150 group-open:rotate-180"
+              >
+                v
+              </span>
+            </summary>
+            <div className="border-t border-[var(--gold)]/20 px-3 py-2">
+              {RMAC_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="block py-2 text-[var(--text-dim)] transition-colors duration-150
+                             hover:text-[var(--gold)] focus-visible:outline
+                             focus-visible:outline-2 focus-visible:outline-offset-2
+                             focus-visible:outline-[var(--gold)]"
+                >
+                  <span className="block font-mono text-[0.56rem] tracking-[0.12em] uppercase">
+                    {link.label}
+                  </span>
+                  <span className="mt-0.5 block font-syne text-xs">
+                    {link.description}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </details>
+        </div>
+      )}
 
       {/* Risk score */}
       <RiskScoreHUD score={isLoading ? (FALLBACK_SCORES[region.slug] ?? 50) : score} tier={region.risk} />
