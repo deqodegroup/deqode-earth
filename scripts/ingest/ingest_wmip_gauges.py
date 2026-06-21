@@ -1,41 +1,31 @@
 """
-QLD WMIP Real-Time Gauge API -> Supabase flood_forecasts
+QLD WMIP current gauge readings -> Supabase flood_forecasts.
 
-Fetches live river level / discharge readings for:
-  - Brisbane River at City:       approx -27.47, 153.02
-  - Lockyer Creek at Grantham:    approx -27.47, 152.33
-
-Target table: flood_forecasts
-  UNIQUE(source, forecast_date, latitude, longitude)
-
-NOTE: The flood_forecasts table does NOT have a location_hash column.
-The UNIQUE constraint is on (source, forecast_date, latitude, longitude).
-Do NOT include location_hash in upsert records.
-
-WMIP API base: https://water-monitoring.information.qld.gov.au/
-Docs: https://water-monitoring.information.qld.gov.au/wini/Documents/WMIP_API_2025.pdf
-
-The script auto-discovers the nearest WMIP station to each target coordinate
-using a spatial bounding box search, then fetches the latest reading.
-
-Env vars required:
-  SUPABASE_URL          -- Supabase project URL
-  SUPABASE_SERVICE_KEY  -- Service role key (bypasses RLS for write)
+Default behaviour is product-first: find the nearest current public station,
+write the latest discharge if available, and keep the job useful even when a
+station only has level data or no fresh trace. Historical gauge pulls are a
+separate research/reporting path.
 """
 
+import json
+import logging
 import os
 import sys
-import logging
+from datetime import date, datetime, timedelta, timezone
+from urllib.parse import quote
+
 import requests
-from datetime import date
 from supabase import create_client
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
-SUPABASE = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
-
-WMIP_BASE = "https://water-monitoring.information.qld.gov.au"
+WMIP_SERVICE_URL = "https://water-monitoring.information.qld.gov.au/cgi/webservice.exe"
+WMIP_SITE_FIELDS = ["STATION", "STNAME", "STNTYPE", "LATITUDE", "LONGITUDE", "LLDATUM"]
+WMIP_DATASOURCES = ["P", "A", "G", "R"]
+WMIP_DISCHARGE_VARIABLES = ["140", "135"]
+WMIP_LEVEL_VARIABLES = ["100", "103"]
+FRESHNESS_WINDOW_HOURS = 72
 
 # Target gauge locations: (display_name, lat, lon, search_radius_km)
 TARGET_GAUGES = [
@@ -44,84 +34,136 @@ TARGET_GAUGES = [
 ]
 
 
+def wmip_query(function: str, version: str, params: dict) -> dict:
+    payload = {"function": function, "version": version, "params": params}
+    url = f"{WMIP_SERVICE_URL}?{quote(json.dumps(payload, separators=(',', ':')))}"
+    resp = requests.get(url, timeout=30)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_db_info(table_name: str, params: dict | None = None) -> list[dict]:
+    data = wmip_query(
+        "get_db_info",
+        "3",
+        {"table_name": table_name, "return_type": "array", **(params or {})},
+    )
+    if data.get("error_num") != 0:
+        raise ValueError(data.get("error_msg", f"WMIP {table_name} lookup failed"))
+    return data.get("return", {}).get("rows", [])
+
+
+def open_stations() -> list[dict]:
+    return get_db_info(
+        "SITE",
+        {
+            "sitelist_filter": "GROUP(OPEN_STATIONS)",
+            "field_list": WMIP_SITE_FIELDS,
+        },
+    )
+
+
+def station_id(station: dict) -> str | None:
+    return station.get("station") or station.get("STATION")
+
+
+def station_lat(station: dict, fallback: float = 0) -> float:
+    return float(station.get("latitude", station.get("LATITUDE", fallback)))
+
+
+def station_lon(station: dict, fallback: float = 0) -> float:
+    return float(station.get("longitude", station.get("LONGITUDE", fallback)))
+
+
 def find_station(lat: float, lon: float, radius_km: float) -> dict | None:
-    """
-    Search WMIP for the nearest station to given coordinates.
-    Uses a bounding box derived from the radius to query the station endpoint.
-    Returns the closest matching station dict, or None if not found.
-    """
+    delta = radius_km / 111.0
     try:
-        delta = radius_km / 111.0  # approximate degrees per km
-        url = f"{WMIP_BASE}/wini/monitoring/station"
-        params = {
-            "minLat": lat - delta,
-            "maxLat": lat + delta,
-            "minLon": lon - delta,
-            "maxLon": lon + delta,
-            "f": "json",
-        }
-        resp = requests.get(url, params=params, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-
-        # Response may be a list of stations or wrapped in a dict
-        stations = data if isinstance(data, list) else data.get("stations", data.get("features", []))
-
-        if stations:
-            # Return the closest station by Manhattan distance in degrees
+        candidates = [
+            station
+            for station in open_stations()
+            if abs(station_lat(station) - lat) <= delta
+            and abs(station_lon(station) - lon) <= delta
+        ]
+        if candidates:
             return min(
-                stations,
-                key=lambda s: (
-                    abs(float(s.get("latitude", s.get("lat", 0))) - lat) +
-                    abs(float(s.get("longitude", s.get("lon", s.get("lng", 0)))) - lon)
-                )
+                candidates,
+                key=lambda s: abs(station_lat(s) - lat) + abs(station_lon(s) - lon),
             )
     except Exception as e:
         log.warning(f"WARN: wmip station search failed near ({lat}, {lon}): {e}")
     return None
 
 
-def fetch_gauge_reading(station_id: str) -> dict | None:
-    """
-    Fetch the latest reading for a given WMIP station ID.
-    Returns the raw API response dict/list, or None on failure.
-    """
-    try:
-        # WMIP variable endpoint — try both known URL patterns
-        for path in [
-            f"{WMIP_BASE}/wini/monitoring/variable/{station_id}",
-            f"{WMIP_BASE}/wini/monitoring/station/{station_id}/variable",
-        ]:
-            resp = requests.get(path, params={"f": "json"}, timeout=30)
-            if resp.status_code == 200:
-                return resp.json()
-    except Exception as e:
-        log.warning(f"WARN: wmip reading fetch failed for station {station_id}: {e}")
+def wmip_timestamp(value: datetime) -> str:
+    return value.astimezone(timezone.utc).strftime("%Y%m%d%H%M%S")
+
+
+def trace_rows(data: dict) -> list:
+    if data.get("error_num") != 0:
+        return []
+    returned = data.get("return", {})
+    if isinstance(returned, dict):
+        return returned.get("rows", []) or returned.get("traces", []) or []
+    return returned if isinstance(returned, list) else []
+
+
+def latest_numeric_value(rows: list) -> float | None:
+    values = []
+    for row in rows:
+        if isinstance(row, dict):
+            for field in ["value", "val", "mean", "data_value", "quality_value"]:
+                if row.get(field) is not None:
+                    try:
+                        values.append(float(row[field]))
+                        break
+                    except (TypeError, ValueError):
+                        pass
+        elif isinstance(row, list):
+            for item in reversed(row):
+                try:
+                    values.append(float(item))
+                    break
+                except (TypeError, ValueError):
+                    pass
+    return values[-1] if values else None
+
+
+def fetch_trace_value(station: str, variables: list[str]) -> float | None:
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(hours=FRESHNESS_WINDOW_HOURS)
+
+    for datasource in WMIP_DATASOURCES:
+        for variable in variables:
+            for data_type in ["mean", "point"]:
+                try:
+                    data = wmip_query(
+                        "get_ts_traces",
+                        "2",
+                        {
+                            "site_list": station,
+                            "datasource": datasource,
+                            "start_time": wmip_timestamp(start),
+                            "end_time": wmip_timestamp(end),
+                            "data_type": data_type,
+                            "varfrom": variable,
+                            "varto": variable,
+                            "interval": "hour",
+                            "multiplier": "1",
+                        },
+                    )
+                    value = latest_numeric_value(trace_rows(data))
+                    if value is not None:
+                        return value
+                except Exception:
+                    continue
     return None
 
 
-def extract_discharge(reading) -> float | None:
-    """
-    Extract the discharge/level value from a WMIP reading response.
-    Field names vary across WMIP API versions — tries common patterns.
-    """
-    if reading is None:
-        return None
-
-    # If it's a list, use the first element
-    if isinstance(reading, list):
-        reading = reading[0] if reading else None
-    if not isinstance(reading, dict):
-        return None
-
-    for field in ["value", "discharge", "streamflow", "level", "stage", "reading"]:
-        val = reading.get(field)
-        if val is not None:
-            try:
-                return float(val)
-            except (ValueError, TypeError):
-                pass
-    return None
+def fetch_gauge_reading(station: str) -> dict:
+    return {
+        "discharge": fetch_trace_value(station, WMIP_DISCHARGE_VARIABLES),
+        "level": fetch_trace_value(station, WMIP_LEVEL_VARIABLES),
+    }
 
 
 def main():
@@ -132,48 +174,45 @@ def main():
         try:
             station = find_station(lat, lon, radius)
             if not station:
-                log.warning(f"WARN: wmip — no station found near {name} ({lat}, {lon})")
+                log.warning(f"WARN: wmip -- no station found near {name} ({lat}, {lon})")
                 continue
 
-            # Station ID field varies across WMIP API versions
-            station_id = (
-                station.get("stationId")
-                or station.get("station_id")
-                or station.get("id")
-                or station.get("properties", {}).get("stationId")
+            found_station_id = station_id(station)
+            if not found_station_id:
+                log.warning(f"WARN: wmip -- could not extract station ID for {name}: {station}")
+                continue
+
+            reading = fetch_gauge_reading(found_station_id)
+            records.append(
+                {
+                    "source": "wmip",
+                    "forecast_date": today,
+                    "latitude": station_lat(station, lat),
+                    "longitude": station_lon(station, lon),
+                    "discharge_m3s": reading["discharge"],
+                    "scenario": "current",
+                }
             )
-            if not station_id:
-                log.warning(f"WARN: wmip — could not extract station ID for {name}: {station}")
-                continue
 
-            station_lat = float(station.get("latitude", station.get("lat", lat)))
-            station_lon = float(station.get("longitude", station.get("lon", station.get("lng", lon))))
-
-            reading = fetch_gauge_reading(station_id)
-            discharge = extract_discharge(reading)
-
-            records.append({
-                "source": "wmip",
-                "forecast_date": today,
-                "latitude": station_lat,
-                "longitude": station_lon,
-                "discharge_m3s": discharge,
-                "scenario": "current",
-            })
-            log.info(f"OK: wmip — {name} (station {station_id}): discharge={discharge}")
+            if reading["discharge"] is None and reading["level"] is None:
+                log.warning(f"WARN: wmip -- {name} ({found_station_id}) has no fresh trace")
+            else:
+                log.info(
+                    f"OK: wmip -- {name} ({found_station_id}): "
+                    f"discharge={reading['discharge']}, level={reading['level']}"
+                )
 
         except Exception as e:
-            log.warning(f"WARN: wmip — {name} failed: {e}")
+            log.warning(f"WARN: wmip -- {name} failed: {e}")
 
     if records:
-        # UNIQUE constraint: (source, forecast_date, latitude, longitude)
-        # No location_hash column in flood_forecasts table.
-        SUPABASE.table("flood_forecasts").upsert(
+        supabase = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
+        supabase.table("flood_forecasts").upsert(
             records, on_conflict="source,forecast_date,latitude,longitude"
         ).execute()
-        log.info(f"OK: wmip — {len(records)} gauge readings upserted")
+        log.info(f"OK: wmip -- {len(records)} gauge station records upserted")
     else:
-        log.error("FAIL: wmip -- no gauge readings upserted")
+        log.error("FAIL: wmip -- no gauge stations upserted")
         sys.exit(1)
 
 

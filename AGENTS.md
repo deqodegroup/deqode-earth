@@ -52,15 +52,24 @@ npm run test
 - For UI, preserve DEQODE quality standards: no generic starter-template surfaces, no default Inter/Roboto primary type, and no low-effort gradient-only identity.
 - Update this file if durable project facts change.
 
-## Data Operations (2026-06-15)
-- Live forecasts and gauges run every 6 hours.
-- Brisbane flood mapping runs weekly.
-- IDMC, World Bank, PDH.stat, Deltares, and JRC baselines run monthly.
-- Historical flood extents are manual-only and retained permanently.
+## Data Operations (2026-06-20)
+- Automatic scheduled pulls are disabled across all ingestion services to avoid duplicate rows, unused generated data, storage drift, and source/API noise before the Niue July showcase.
+- Refreshes now run on demand only through the GitHub Actions `On-Demand Data Ingestion` workflow (`workflow_dispatch`) using the selected dataset input.
+- Default app/showcase views must use the latest verified stored value plus source freshness, not trigger background report generation.
+- Historical flood extents remain manual-only and retained permanently.
 - Open-Meteo history is retained for 30 days; WMIP gauge history for 90 days.
 - Failed and abandoned analysis-cache jobs expire after 30 and 7 days respectively.
 - Source refreshes must pass coverage checks before replacing the last known-good snapshot.
 - `/api/data-health` is the product-facing source freshness and failure contract.
+
+## Product Data Policy (2026-06-18)
+- Default platform views show latest verified operational data and source freshness.
+- Historical data is retained for research, audit, evidence, comparison, reports, and "change over time" requests, but is not pulled into the default client experience unless explicitly requested.
+- If a live source is unavailable or lagging, show the latest verified value with its source date/freshness state instead of implying real-time data.
+- `StatusStrip` surfaces a compact `Data X/Y current` progress signal from `/api/data-health` so client-facing pages have visible source-health feedback.
+- SST ingest now uses NOAA's source-published coverage date, samples a small ocean area around the region, and writes the latest valid reading only.
+- pH ingest uses the Copernicus complete-dataset retrieval path for the global area-averaged pH index.
+- WMIP gauge ingest uses the current `cgi/webservice.exe` API, prefers current discharge, and tolerates missing trace values by preserving station freshness.
 
 ## Analysis route migration + map config fix (2026-06-17)
 - `web/api/analyse.py` and `web/api/map-thumb.py` (old Vercel Python functions) replaced by `web/app/api/analyse/route.ts` and `web/app/api/map-thumb/route.ts` Next.js route handlers, backed by `web/lib/gee/coastline.ts` and `web/lib/analysis-period.ts`.
@@ -73,8 +82,8 @@ npm run test
 - `web/lib/ocean/metrics.ts` — pure trend aggregation (rising/falling/stable) shared by the API route; covered by `metrics.test.ts`.
 - `/api/ocean?region=<slug>` reads `ocean_metrics`, returns latest SST + pH plus trend direction/delta.
 - `OceanModule.tsx` fetches live data, falls back to the original hardcoded per-region copy when no live row exists yet (i.e. before the ingest jobs have run or before Copernicus credentials are added).
-- **SST**: `scripts/ingest/ingest_ocean_sst.py` — NOAA Coral Reef Watch CoralTemp via ERDDAP (`oceanwatch.pifsc.noaa.gov`), anonymous, no credential. Runs on the 6-hourly `live` nightly-ingest schedule. Pulls last 14 days per region center point for short-term trend.
-- **pH**: `scripts/ingest/ingest_ocean_ph.py` — Copernicus Marine Service dataset `global_omi_health_carbon_ph_area_averaged` (yearly, global mean — not region-specific; applied uniformly to all regions as a proxy since acidification is a slow globally-coupled signal and no verified region-specific dataset/variable layout was confirmed). Runs on the monthly nightly-ingest schedule.
+- **SST**: `scripts/ingest/ingest_ocean_sst.py` — NOAA Coral Reef Watch CoralTemp via ERDDAP (`oceanwatch.pifsc.noaa.gov`), anonymous, no credential. Runs only through the on-demand `live` or `ocean_sst` workflow input. Pulls last 14 days per region center point for short-term trend.
+- **pH**: `scripts/ingest/ingest_ocean_ph.py` — Copernicus Marine Service dataset `global_omi_health_carbon_ph_area_averaged` (yearly, global mean — not region-specific; applied uniformly to all regions as a proxy since acidification is a slow globally-coupled signal and no verified region-specific dataset/variable layout was confirmed). Runs only through the on-demand `ocean_ph` workflow input.
 - **Active and verified (2026-06-17)**: `COPERNICUS_MARINE_USERNAME` / `COPERNICUS_MARINE_PASSWORD` repo secrets are set. First real run hit two issues, both fixed: (1) a transient ~15min TCP connect-timeout from the GitHub-hosted runner to `auth.marine.copernicus.eu` that resolved on retry — known failure mode per the toolbox's own error docs, not a credential problem; (2) the dataset ID used at build time was the wrong case (`GLOBAL_OMI_HEALTH_carbon_ph_area_averaged`, the *product* ID) — the real *dataset* ID is lowercase `global_omi_health_carbon_ph_area_averaged`, confirmed via `copernicusmarine describe` against the live catalogue. Script now pins `VARIABLE_NAME = "ph"` explicitly (catalogue confirmed two vars: `ph`, `ph_uncertainty`) instead of guessing the first data var.
 - Reef, Land, Climate modules remain static/curated — no live source confirmed yet for Reef (NOAA Coral Reef Watch bleaching alerts is the likely candidate) or Land; Climate could reuse the existing CMIP6 GEE pipeline already wired into Coastline rather than a new ingest job.
 - Verification: 101/101 tests passed (7 new), full Next.js production build passed.

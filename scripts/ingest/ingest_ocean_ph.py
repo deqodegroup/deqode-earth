@@ -39,7 +39,7 @@ def fetch_latest_ph(username: str, password: str) -> tuple[str, float] | None:
     import xarray as xr
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = copernicusmarine.subset(
+        result = copernicusmarine.get(
             dataset_id=DATASET_ID,
             username=username,
             password=password,
@@ -47,9 +47,23 @@ def fetch_latest_ph(username: str, password: str) -> tuple[str, float] | None:
             output_filename="ocean_ph.nc",
             overwrite=True,
         )
+        file_paths = [
+            Path(path)
+            for path in (
+                result
+                if isinstance(result, list)
+                else getattr(result, "file_path", None)
+                or getattr(result, "file_paths", [])
+                or []
+            )
+        ]
         file_path = Path(tmpdir) / "ocean_ph.nc"
-        if not file_path.exists() and hasattr(result, "file_path"):
-            file_path = Path(result.file_path)
+        if not file_path.exists() and file_paths:
+            file_path = file_paths[0]
+        if not file_path.exists():
+            matches = list(Path(tmpdir).glob("*.nc"))
+            if matches:
+                file_path = matches[0]
 
         ds = xr.open_dataset(file_path)
         if not ds.data_vars:

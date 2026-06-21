@@ -3,7 +3,7 @@ name: DEQODE Earth Reliability Watchdog
 on:
   workflow_run:
     workflows:
-      - Nightly Data Ingestion
+      - On-Demand Data Ingestion
     types:
       - completed
 
@@ -23,7 +23,7 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const run = context.payload.workflow_run;
-            const issueTitle = "[Reliability] Nightly Data Ingestion failure";
+            const issueTitle = "[Reliability] On-Demand Data Ingestion failure";
             const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
               owner,
               repo,
@@ -66,7 +66,7 @@ jobs:
             }
 
             const body = [
-              "## Nightly ingestion incident",
+              "## On-demand ingestion incident",
               "",
               `- Run: ${run.run_number}`,
               `- Conclusion: ${run.conclusion}`,
@@ -79,7 +79,7 @@ jobs:
               failedLines,
               "",
               "### Reliability agent instructions",
-              "1. Inspect the failed job logs.",
+              "1. Inspect the failed manual refresh logs.",
               "2. Verify source-data and Supabase row quality before changing code.",
               "3. Prepare an isolated fix with tests.",
               "4. Request approval before production database cleanup, migration, push, or rerun.",
