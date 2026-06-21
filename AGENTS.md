@@ -70,6 +70,7 @@ npm run test
 - SST ingest now uses NOAA's source-published coverage date, samples a small ocean area around the region, and writes the latest valid reading only.
 - pH ingest uses the Copernicus complete-dataset retrieval path for the global area-averaged pH index.
 - WMIP gauge ingest uses the current `cgi/webservice.exe` API, prefers current discharge, and tolerates missing trace values by preserving station freshness.
+- On-demand refreshes, source freshness, storage control, report requests, and workflow-failure follow-up have explicit agent assignments in `docs/data-operations-agents.md` and `web/lib/data-operations/agent-assignments.ts`.
 
 ## Analysis route migration + map config fix (2026-06-17)
 - `web/api/analyse.py` and `web/api/map-thumb.py` (old Vercel Python functions) replaced by `web/app/api/analyse/route.ts` and `web/app/api/map-thumb/route.ts` Next.js route handlers, backed by `web/lib/gee/coastline.ts` and `web/lib/analysis-period.ts`.
